@@ -40,7 +40,6 @@ html {
 body {
   margin: 0;
   height: 100vh;
-  height: 100dvh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -59,11 +58,20 @@ button {
   cursor: pointer;
 }
 
+@supports (height: 100dvh) {
+  body {
+    height: 100dvh;
+  }
+}
+
 /* ---------- 背景 ---------- */
 
 .bg {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
@@ -115,7 +123,10 @@ button {
 
 .dots {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   background-image: radial-gradient(rgba(43, 36, 64, 0.07) 1.2px, transparent 1.2px);
   background-size: 26px 26px;
   opacity: 0.55;
@@ -143,7 +154,10 @@ button {
 
 .flash {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 1;
   opacity: 0;
   pointer-events: none;
@@ -157,15 +171,15 @@ button {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 12px;
+  padding: 14px 18px;
   padding: clamp(10px, 1.6vh, 18px) clamp(12px, 2vw, 26px);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 7px;
   font-size: 15px;
+  font-size: clamp(15px, 0.85vw, 24px);
   font-weight: 800;
   letter-spacing: 0.02em;
   color: var(--ink-soft);
@@ -173,30 +187,36 @@ button {
 }
 
 .brand-emoji {
+  margin-right: 7px;
   font-size: 20px;
+  font-size: clamp(20px, 1.2vw, 30px);
   line-height: 1;
   display: inline-block;
   animation: bob 3.4s ease-in-out infinite;
 }
 
 .stars-pill {
+  margin-left: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
   min-width: 76px;
+  min-width: clamp(76px, 5vw, 120px);
   padding: 7px 14px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.78);
   box-shadow: var(--shadow-soft), inset 0 0 0 1px rgba(255, 255, 255, 0.9);
   font-size: 16px;
+  font-size: clamp(16px, 1vw, 26px);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--ink);
 }
 
 .star-ico {
+  margin-right: 6px;
   font-size: 15px;
+  font-size: clamp(15px, 0.9vw, 22px);
   line-height: 1;
   display: inline-block;
 }
@@ -211,9 +231,10 @@ button {
   top: 50%;
   transform: translate(-50%, -50%);
   display: flex;
-  gap: 4px;
   padding: 5px;
+  padding: clamp(5px, 0.3vw, 8px);
   border-radius: 16px;
+  border-radius: clamp(16px, 1vw, 22px);
   background: rgba(255, 255, 255, 0.7);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
@@ -226,10 +247,12 @@ button {
   background: transparent;
   display: flex;
   align-items: center;
-  gap: 5px;
   padding: 9px 14px;
+  padding: clamp(9px, 0.55vw, 14px) clamp(14px, 0.85vw, 22px);
   border-radius: 12px;
+  border-radius: clamp(12px, 0.7vw, 16px);
   font-size: 14px;
+  font-size: clamp(14px, 0.85vw, 22px);
   font-weight: 800;
   line-height: 1;
   color: var(--ink-soft);
@@ -246,6 +269,14 @@ button {
   transform: scale(0.96);
 }
 
+.mode-emoji {
+  margin-right: 5px;
+}
+
+.mode + .mode {
+  margin-left: 4px;
+}
+
 .mode[aria-selected="true"] {
   color: #fff;
   background: linear-gradient(135deg, #ff5d8f, #ff8a3d);
@@ -255,21 +286,24 @@ button {
 .tools {
   display: flex;
   align-items: center;
-  gap: 8px;
   margin-left: auto;
 }
 
 .icon-btn {
   width: 42px;
+  width: clamp(42px, 2.5vw, 64px);
   height: 42px;
+  height: clamp(42px, 2.5vw, 64px);
   display: grid;
   place-items: center;
   padding: 0;
   border: 0;
   border-radius: 14px;
+  border-radius: clamp(14px, 0.8vw, 22px);
   background: rgba(255, 255, 255, 0.72);
   color: var(--ink);
   font-size: 19px;
+  font-size: clamp(19px, 1.1vw, 30px);
   line-height: 1;
   box-shadow: var(--shadow-soft), inset 0 0 0 1px rgba(255, 255, 255, 0.9);
   transition: transform 0.14s ease, opacity 0.18s ease, background 0.18s ease;
@@ -293,6 +327,43 @@ button {
   color: #fff7e8;
 }
 
+.tools > * + * {
+  margin-left: 8px;
+}
+
+.icon-btn--lite {
+  width: auto;
+  min-width: 42px;
+  min-width: clamp(42px, 2.5vw, 64px);
+  padding: 0 12px;
+  padding: 0 clamp(12px, 0.7vw, 20px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.icon-btn--lite .lite-label {
+  margin-right: 5px;
+  font-size: 12px;
+  font-size: clamp(12px, 0.65vw, 18px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.icon-btn--lite[aria-pressed="true"] {
+  background: #ffe7b8;
+  box-shadow: 0 10px 30px rgba(245, 164, 0, 0.18), inset 0 0 0 1px rgba(245, 164, 0, 0.35);
+}
+
+.icon-btn svg {
+  width: 20px;
+  width: clamp(20px, 1.2vw, 30px);
+  height: 20px;
+  height: clamp(20px, 1.2vw, 30px);
+}
+
 button:focus-visible {
   outline: 3px solid var(--blue);
   outline-offset: 3px;
@@ -309,11 +380,17 @@ button:focus-visible {
 
 .pane {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   display: none;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0 20px;
   padding: 0 clamp(10px, 3vw, 40px);
 }
 
@@ -352,7 +429,10 @@ button:focus-visible {
 .glyph::before {
   content: attr(data-text);
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: -1;
   color: #fff;
   -webkit-text-stroke: 0.055em #fff;
@@ -365,8 +445,10 @@ button:focus-visible {
 
 .caption {
   flex: 0 0 auto;
+  margin: 0 0 14px;
   margin: 0 0 clamp(6px, 2vh, 22px);
   min-height: 1.4em;
+  font-size: 20px;
   font-size: clamp(16px, 2.5vh, 28px);
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -379,10 +461,11 @@ button:focus-visible {
 .bubble {
   position: relative;
   flex: 0 0 auto;
+  margin-top: 8px;
   margin-top: clamp(0px, 1vh, 12px);
   display: flex;
   align-items: center;
-  gap: clamp(8px, 1.4vw, 16px);
+  padding: 10px 24px 10px 16px;
   padding: 10px clamp(18px, 2.6vw, 30px) 10px clamp(12px, 1.8vw, 18px);
   border-radius: 28px;
   background: #fff;
@@ -415,6 +498,8 @@ button:focus-visible {
 }
 
 .bubble-face {
+  margin-right: 12px;
+  font-size: 42px;
   font-size: clamp(32px, 5.4vh, 58px);
   line-height: 1;
   display: inline-block;
@@ -424,10 +509,10 @@ button:focus-visible {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
 }
 
 .bubble-kicker {
+  font-size: 13px;
   font-size: clamp(11px, 1.5vh, 15px);
   font-weight: 800;
   letter-spacing: 0.22em;
@@ -437,6 +522,7 @@ button:focus-visible {
 
 .bubble-target {
   --tc: #ff4d85;
+  font-size: 72px;
   font-size: clamp(52px, 12.5vh, 130px);
   font-weight: 900;
   line-height: 0.95;
@@ -458,6 +544,10 @@ button:focus-visible {
 
 .pane-piano .glyph-box {
   flex: 0 1 auto;
+  width: 78vw;
+  height: 48vh;
+  max-width: 720px;
+  max-height: 440px;
   width: min(78vw, 720px);
   height: min(48vh, 440px);
   animation-duration: 5s;
@@ -469,11 +559,11 @@ button:focus-visible {
   position: relative;
   z-index: 20;
   flex: 0 0 auto;
+  height: 60px;
   height: clamp(52px, 8.4vh, 76px);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
   padding: 0 14px 8px;
   overflow: hidden;
   pointer-events: none;
@@ -482,7 +572,9 @@ button:focus-visible {
 .trail-pill {
   --tc: #ff4d85;
   flex: 0 0 auto;
+  min-width: 40px;
   min-width: clamp(34px, 4.6vh, 46px);
+  height: 40px;
   height: clamp(34px, 4.6vh, 46px);
   padding: 0 9px;
   display: inline-flex;
@@ -492,11 +584,16 @@ button:focus-visible {
   background: rgba(255, 255, 255, 0.82);
   box-shadow: 0 5px 14px rgba(43, 36, 64, 0.07), inset 0 0 0 1px rgba(255, 255, 255, 0.9);
   color: var(--tc);
+  font-size: 18px;
   font-size: clamp(14px, 2vh, 20px);
   font-weight: 900;
   line-height: 1;
   white-space: nowrap;
   animation: trail-in 0.3s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+
+.trail-pill + .trail-pill {
+  margin-left: 7px;
 }
 
 .trail-hint {
@@ -510,7 +607,10 @@ button:focus-visible {
 
 .fx {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 40;
   width: 100%;
   height: 100%;
@@ -520,6 +620,7 @@ button:focus-visible {
 .toast {
   position: fixed;
   left: 50%;
+  top: 90px;
   top: clamp(74px, 12vh, 116px);
   z-index: 60;
   transform: translate(-50%, -10px);
@@ -528,6 +629,7 @@ button:focus-visible {
   border-radius: 999px;
   background: #fff;
   box-shadow: 0 18px 44px rgba(43, 36, 64, 0.16);
+  font-size: 18px;
   font-size: clamp(15px, 2.2vh, 22px);
   font-weight: 800;
   color: var(--ink);
@@ -539,92 +641,6 @@ button:focus-visible {
 .toast.show {
   opacity: 1;
   transform: translate(-50%, 0);
-}
-
-/* ---------- 开始界面 ---------- */
-
-.overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: rgba(255, 247, 232, 0.93);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  transition: opacity 0.42s ease, visibility 0.42s ease;
-}
-
-.overlay.is-hidden {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.overlay-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  text-align: center;
-  animation: card-in 0.65s cubic-bezier(0.2, 1.2, 0.4, 1) both;
-}
-
-.overlay-emoji {
-  font-size: clamp(56px, 10vh, 96px);
-  line-height: 1;
-  animation: bob 2.8s ease-in-out infinite;
-}
-
-.overlay h1 {
-  margin: 0;
-  font-size: clamp(44px, 8.6vh, 88px);
-  font-weight: 900;
-  letter-spacing: 0.01em;
-  line-height: 1.05;
-  background: linear-gradient(135deg, #ff5d8f 5%, #ff8a3d 48%, #9b6bff 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.overlay p {
-  margin: 0;
-  font-size: clamp(15px, 2.1vh, 21px);
-  font-weight: 700;
-  color: var(--ink-soft);
-}
-
-.start {
-  margin-top: clamp(14px, 2.6vh, 28px);
-  padding: clamp(16px, 2.6vh, 22px) clamp(46px, 7vw, 68px);
-  border: 0;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #ff5d8f, #ff8a3d);
-  color: #fff;
-  font-size: clamp(22px, 3.1vh, 30px);
-  font-weight: 900;
-  letter-spacing: 0.04em;
-  box-shadow: 0 18px 44px rgba(255, 93, 143, 0.38), inset 0 -4px 0 rgba(0, 0, 0, 0.12);
-  animation: pulse 2.6s ease-in-out infinite;
-  transition: transform 0.15s ease, box-shadow 0.2s ease;
-}
-
-.start:hover {
-  transform: translateY(-2px) scale(1.015);
-  box-shadow: 0 22px 50px rgba(255, 93, 143, 0.44), inset 0 -4px 0 rgba(0, 0, 0, 0.12);
-}
-
-.start:active {
-  transform: scale(0.97);
-}
-
-.overlay-hint {
-  margin-top: 12px !important;
-  font-size: clamp(12px, 1.7vh, 15px) !important;
-  font-weight: 600 !important;
-  color: var(--ink-faint) !important;
 }
 
 /* ---------- 动画 ---------- */
@@ -724,27 +740,17 @@ button:focus-visible {
   }
 }
 
-@keyframes card-in {
-  from {
-    opacity: 0;
-    transform: translateY(24px) scale(0.96);
-  }
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    box-shadow: 0 18px 44px rgba(255, 93, 143, 0.38), inset 0 -4px 0 rgba(0, 0, 0, 0.12);
-  }
-  50% {
-    box-shadow: 0 18px 54px rgba(255, 122, 26, 0.5), inset 0 -4px 0 rgba(0, 0, 0, 0.12);
-  }
-}
-
 /* ---------- 小屏适配 ---------- */
 
 @media (max-width: 980px) {
   .brand-name {
+    display: none;
+  }
+  .icon-btn--lite {
+    width: 42px;
+    padding: 0;
+  }
+  .icon-btn--lite .lite-label {
     display: none;
   }
   .mode {
@@ -760,8 +766,10 @@ button:focus-visible {
     font-size: 14px;
   }
   .modes {
-    gap: 2px;
     padding: 4px;
+  }
+  .mode + .mode {
+    margin-left: 2px;
   }
   .mode {
     padding: 8px 8px;
@@ -770,17 +778,75 @@ button:focus-visible {
   .mode .mode-emoji {
     display: none;
   }
+  .brand {
+    display: none;
+  }
+  .stars-pill {
+    margin-left: 0;
+  }
   .icon-btn {
     width: 38px;
     height: 38px;
     border-radius: 12px;
   }
-  .bubble {
-    gap: 8px;
+  .icon-btn--lite {
+    display: none;
   }
-  .trail {
-    gap: 5px;
+  .bubble-face {
+    margin-right: 8px;
   }
+  .trail-pill + .trail-pill {
+    margin-left: 5px;
+  }
+}
+
+/* ---------- 流畅模式（减少动画，电视 / 旧设备） ---------- */
+
+.lite .blob {
+  display: none;
+}
+
+.lite .bg {
+  background:
+    radial-gradient(40vmax 40vmax at 10% 6%, #ffd6e7 0%, rgba(255, 214, 231, 0) 70%),
+    radial-gradient(34vmax 34vmax at 92% 4%, #ffe3b0 0%, rgba(255, 227, 176, 0) 70%),
+    radial-gradient(38vmax 38vmax at 6% 96%, #cdf3dd 0%, rgba(205, 243, 221, 0) 70%),
+    radial-gradient(32vmax 32vmax at 94% 96%, #d8e6ff 0%, rgba(216, 230, 255, 0) 70%);
+}
+
+.lite .glyph {
+  filter: none;
+}
+
+.lite .glyph-box,
+.lite .bubble,
+.lite .bubble-face,
+.lite .brand-emoji {
+  animation: none;
+}
+
+.lite .glyph.pop {
+  animation-duration: 0.22s;
+  animation-timing-function: ease-out;
+}
+
+.lite .pane.is-active {
+  animation-duration: 0.2s;
+}
+
+.lite .modes {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.lite .toast,
+.lite .mode,
+.lite .icon-btn {
+  transition: none;
+}
+
+.lite .flash {
+  display: none;
 }
 
 /* ---------- 减少动态效果 ---------- */
@@ -790,9 +856,7 @@ button:focus-visible {
   .bubble,
   .bubble-face,
   .brand-emoji,
-  .overlay-emoji,
-  .glyph-box,
-  .start {
+  .glyph-box {
     animation: none !important;
   }
   .glyph.pop,
@@ -802,9 +866,4 @@ button:focus-visible {
   .glyph.pop {
     animation-timing-function: ease-out;
   }
-}
-
-/* 调试截图用：跳过过渡 */
-.demo .overlay {
-  transition: none;
 }

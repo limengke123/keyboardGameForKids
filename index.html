@@ -38,6 +38,8 @@
 
     <div class="tools">
       <button class="icon-btn" type="button" id="btnSound" aria-label="声音开关">🔊</button>
+      <button class="icon-btn icon-btn--lite" type="button" id="btnLite" aria-pressed="false"
+              title="流畅模式：减少动画，适合电视或旧设备"><span class="lite-label">流畅</span>🐢</button>
       <button class="icon-btn" type="button" id="btnFull" aria-label="全屏">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -50,7 +52,7 @@
   <main class="stage">
     <section class="pane pane-free is-active" data-pane="free" aria-label="随便按">
       <div class="glyph-box"><div class="glyph" id="gFree" data-fit data-text="?">?</div></div>
-      <p class="caption" id="gFreeCap">按一下键盘吧</p>
+      <p class="caption" id="gFreeCap">随便按一下键盘吧！</p>
     </section>
 
     <section class="pane pane-find" data-pane="find" aria-label="找一找">
@@ -75,16 +77,6 @@
 
   <canvas id="fx" class="fx" aria-hidden="true"></canvas>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-
-  <div class="overlay" id="overlay">
-    <div class="overlay-card">
-      <div class="overlay-emoji" aria-hidden="true">🐣</div>
-      <h1>咚咚键盘</h1>
-      <p>按哪个键，屏幕就蹦出哪个字</p>
-      <button class="start" id="btnStart" type="button">开始玩</button>
-      <p class="overlay-hint">按任意键也可以开始 · 记得打开声音 🔊</p>
-    </div>
-  </div>
 
   <script src="js/keymap.js"></script>
   <script src="js/audio.js"></script>

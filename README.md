@@ -9,8 +9,9 @@
 ## 开始玩
 
 - **双击 `index.html`** 就能玩——不用安装、不用联网、不用构建。
+- 打开就直接是「随便按」模式：**没有开始按钮，也不会自动全屏**。想全屏点右上角 ⛶ 就行。
+- 浏览器规定必须先有用户操作才能出声，所以第一次按键 / 点击后才有音效。
 - 也可以整个文件夹丢到任意静态服务器 / GitHub Pages / 内网共享目录。
-- 点「开始玩」会尝试进入全屏（`Esc` 退出），右上角也有全屏按钮。
 
 ## 三种玩法
 
@@ -30,10 +31,23 @@
 每个键对应五声音阶里的一个音，**物理上相邻的键，音高也相邻**，所以随便乱按都好听。
 每按一下会扩散一圈彩色涟漪。
 
+## 🐢 流畅模式（电视 / 旧设备）
+
+右上角有一个「🐢 流畅」按钮，点一下会切换到轻量效果：
+
+- 关掉背景里四团巨大的模糊光斑，换成静态渐变
+- 粒子 / 彩纸数量减到约 1/3，扩散粒子减到约 40%
+- 去掉巨字的投影滤镜，缩短弹跳动画
+- 降低 Canvas 渲染分辨率（4K 屏上省很多填充率）
+
+电视、机顶盒或 `prefers-reduced-motion` 的设备会**自动开启**；也可以随时手动关掉。选择会记在本地。
+也可以用 URL 强制：`index.html?lite=1`（省电）或 `index.html?lite=0`（完整效果）。
+
 ## 给家长的小提示
 
 - 需要实体键盘；手机 / 平板上打不开输入，只能看到界面。
-- 右上角 🔊 静音、⛶ 全屏；声音开关会记住上次的选择。
+- 打开即玩，没有开始页，不会自动全屏；右上角 🔊 静音、🐢 流畅、⛶ 全屏。
+- 电视上如果显示不正常或动画卡，先点「🐢 流畅」；还不行就换电视自带的另一个浏览器试试。
 - 星星存在浏览器本地（`localStorage`），关掉再打开还在。想清零：控制台执行
   `localStorage.removeItem('dongdong.stars')`。
 - 网页会拦截空格、方向键、Tab、退格、F1–F10 的默认行为，避免误滚动、误跳转。
@@ -48,12 +62,14 @@ keyboard-kids/
 ├── index.html
 ├── preview.jpg
 ├── css/
-│   └── style.css      # 布局、糖果配色、动画
+│   └── style.css      # 布局、糖果配色、动画、流畅模式
 ├── js/
 │   ├── keymap.js      # 键位 → 字 / 词 / 音高 / 题库
 │   ├── audio.js       # Web Audio 现场合成音效
 │   ├── fx.js          # Canvas 星星、彩纸、光圈
-│   └── app.js         # 三种玩法与界面逻辑
+│   └── app.js         # 三种玩法、流畅模式与界面逻辑
+├── .github/workflows/
+│   └── sync-pages.yml # main → gh-pages 自动发布
 └── README.md
 ```
 
@@ -68,6 +84,7 @@ keyboard-kids/
 | 「找一找」题库 | `js/keymap.js` 的 `FIND_POOL` |
 | 星星奖励多少 | `js/app.js` 里 `addStars(...)` 的调用处 |
 | 音色 | `js/audio.js` 的 `pop()` / `piano()` |
+| 流畅模式减少哪些动画 | `css/style.css` 的 `.lite ...` 段落 + `js/fx.js` 的 `isLite()` |
 | 大字占屏幕的比例 | `js/app.js` 的 `fit()` 里 `* 0.99` 和 `css/style.css` 的 `.glyph` 行高 |
 
 ## 技术说明
@@ -77,13 +94,14 @@ keyboard-kids/
 - 键盘事件优先读 `e.key`（跟随键盘布局），拿不到时退回 `e.code`（物理键位），并过滤长按产生的 `repeat`。
 - 巨字用 JS 测量后自适应，横屏、竖屏、超宽屏、投影仪都不会溢出；窗口缩放会重新排。
 - 粒子用一个 canvas + 单个 rAF，粒子落完自动停，不空转。
-- 支持 `prefers-reduced-motion`（减少动态效果）。
+- **老电视兼容**：没有用 `inset` 简写（改用 `top/right/bottom/left`），关键尺寸都带 `clamp()` 降级值，`100dvh` 放在 `@supports` 里，flex 间距用 margin 而不是 `gap`。
+- 支持 `prefers-reduced-motion`，并会自动识别 SmartTV / Tizen / webOS 等 UA。
 
 ## 调试
 
-`index.html?demo=1&key=B`：跳过开始页直接进游戏并模拟按下 B，且不请求全屏。
-其他例子：`?demo=1&mode=find`、`?demo=1&mode=piano&key=G`、`?demo=1&code=Space`。
+`index.html?demo=1&key=B`：跳过一切，直接模拟按下 B。
+其他例子：`?demo=1&mode=find`、`?demo=1&mode=piano&key=G`、`?demo=1&code=Space`、`?lite=1`。
 
 ## 浏览器
 
-Chrome / Edge / Safari / Firefox 近两年的版本。
+Chrome / Edge / Safari / Firefox 近几年的版本；电视浏览器建议用「流畅模式」。

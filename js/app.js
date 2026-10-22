@@ -10,15 +10,17 @@
 
   var COLORS = ["#ff4d85", "#ff7a1a", "#f5a400", "#2fae5b", "#0fa9a0", "#2e86ff", "#8a5cff", "#f04a4a"];
   var STAR_KEY = "dongdong.stars";
+  var LITE_KEY = "dongdong.lite";
   var MAX_TRAIL = 8;
 
   var state = {
-    started: false,
     mode: "free",
     lastColor: "",
     stars: 0,
     trail: []
   };
+
+  var audioReady = false;
 
   var find = {
     target: null,
@@ -85,7 +87,7 @@
     var h = el.offsetHeight || 1;
     var size = Math.min(maxW / w, maxH / h) * 100 * 0.99;
 
-    el.style.fontSize = clamp(size, 22, 900).toFixed(1) + "px";
+    el.style.fontSize = clamp(size, 22, 3000).toFixed(1) + "px";
   }
 
   function setGlyph(el, text, color, opts) {
@@ -155,7 +157,7 @@
   }
 
   function flash(color) {
-    if (!els.flash.animate) return;
+    if (isLite() || !els.flash.animate) return;
     els.flash.style.background =
       "radial-gradient(circle at 50% 45%, " +
       hexA(color, 0.38) +
@@ -370,7 +372,7 @@
     } else if (mode === "piano") {
       els.gPianoCap.textContent = "按一下，听听看";
     } else {
-      els.gFreeCap.textContent = state.started ? "随便按一个键吧！" : "按一下键盘吧";
+      els.gFreeCap.textContent = "随便按一下键盘吧！";
     }
 
     requestAnimationFrame(refitAll);
@@ -428,22 +430,65 @@
     setTimeout(syncFull, 250);
   }
 
-  /* ---------------- 开始 ---------------- */
+  /* ---------------- 声音解锁 / 流畅模式 ---------------- */
 
-  function start(opts) {
-    if (state.started) return;
-    state.started = true;
-
-    els.overlay.classList.add("is-hidden");
+  // 浏览器要求先有用户操作才能出声，首键或首次点击时再初始化
+  function ensureAudio() {
+    if (audioReady) return;
+    audioReady = true;
     KK.audio.init();
     KK.audio.resume();
+  }
 
-    if (!opts || opts.fullscreen !== false) goFullscreen();
+  function isLite() {
+    return document.documentElement.classList.contains("lite");
+  }
 
-    setMode("free");
-    setGlyph(els.gFree, "你好", nextColor());
-    els.gFreeCap.textContent = "随便按一个键吧！";
-    KK.audio.chime();
+  function defaultLite() {
+    try {
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return true;
+    } catch (e) {}
+
+    var ua = navigator.userAgent || "";
+    if (/SmartTV|SMART-TV|Tizen|WebOS|Web0S|NetCast|BRAVIA|Android TV|Google TV|HbbTV|Roku|AppleTV|CrKey/i.test(ua)) {
+      return true;
+    }
+    if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) return true;
+    return false;
+  }
+
+  function loadLite() {
+    var stored = null;
+    try {
+      stored = localStorage.getItem(LITE_KEY);
+    } catch (e) {}
+    if (stored === "1") return true;
+    if (stored === "0") return false;
+    return defaultLite();
+  }
+
+  function renderLite() {
+    var on = isLite();
+    els.btnLite.setAttribute("aria-pressed", on ? "true" : "false");
+    els.btnLite.setAttribute(
+      "aria-label",
+      on ? "流畅模式已开启，点击恢复完整动画" : "开启流畅模式（减少动画）"
+    );
+  }
+
+  function applyLite(on, announce) {
+    document.documentElement.classList.toggle("lite", !!on);
+    try {
+      localStorage.setItem(LITE_KEY, on ? "1" : "0");
+    } catch (e) {}
+    renderLite();
+    if (announce) toast(on ? "🐢 流畅模式：动画更少，更顺滑" : "✨ 完整动画：效果全开");
+  }
+
+  function toggleLite() {
+    applyLite(!isLite(), true);
+    if (KK.fx.refresh) KK.fx.refresh();
+    refitAll();
   }
 
   /* ---------------- 键盘事件 ---------------- */
@@ -501,18 +546,11 @@
 
   function onKeydown(e) {
     if (e.repeat) {
-      if (state.started) e.preventDefault();
+      if (!e.metaKey && !e.ctrlKey) e.preventDefault();
       return;
     }
 
-    if (!state.started) {
-      // F11 / F12 留给浏览器（全屏、开发者工具），其余键吃掉默认行为
-      if (e.code !== "F11" && e.code !== "F12" && !e.metaKey && !e.ctrlKey) e.preventDefault();
-      start();
-      dispatch(KK.keymap.resolve(e));
-      return;
-    }
-
+    ensureAudio();
     if (shouldPrevent(e)) e.preventDefault();
 
     // Ctrl / Cmd / Alt 组合留给浏览器，别抢
@@ -526,23 +564,16 @@
   function bind() {
     document.addEventListener("keydown", onKeydown, { passive: false });
 
+    document.addEventListener("pointerdown", ensureAudio, { passive: true });
+
     $$(".mode").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        if (!state.started) return;
         setMode(btn.dataset.mode);
       });
     });
 
-    els.btnStart.addEventListener("click", function (e) {
-      e.stopPropagation();
-      start();
-    });
-
-    els.overlay.addEventListener("click", function () {
-      start();
-    });
-
     els.btnSound.addEventListener("click", toggleSound);
+    els.btnLite.addEventListener("click", toggleLite);
     els.btnFull.addEventListener("click", toggleFullscreen);
 
     document.addEventListener("fullscreenchange", syncFull);
@@ -556,9 +587,8 @@
 
   function boot() {
     els = {
-      overlay: $("overlay"),
-      btnStart: $("btnStart"),
       btnSound: $("btnSound"),
+      btnLite: $("btnLite"),
       btnFull: $("btnFull"),
       starsPill: $("starsPill"),
       starCount: $("starCount"),
@@ -580,16 +610,23 @@
     renderSound();
     renderTrail();
     bind();
+    applyLite(loadLite(), false);
     KK.fx.init();
     setMode("free");
     syncFull();
 
-    // 调试用：index.html?demo=1&mode=find&key=B 直接进入游戏画面（不请求全屏）
+    // 调试用：index.html?demo=1&mode=find&key=B
+    // 也可用 ?lite=1 / ?lite=0 强制切换流畅模式
     var query = new URLSearchParams(window.location.search);
-    if (query.get("demo") === "1") {
-      document.documentElement.classList.add("demo");
-      start({ fullscreen: false });
+    if (query.get("lite") === "1") {
+      applyLite(true, false);
+      if (KK.fx.refresh) KK.fx.refresh();
+    } else if (query.get("lite") === "0") {
+      applyLite(false, false);
+      if (KK.fx.refresh) KK.fx.refresh();
+    }
 
+    if (query.get("demo") === "1") {
       var demoMode = query.get("mode");
       if (demoMode === "find" || demoMode === "piano") setMode(demoMode);
 

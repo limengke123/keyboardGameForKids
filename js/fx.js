@@ -27,6 +27,10 @@ KK.fx = (function () {
 
   var EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
 
+  function isLite() {
+    return document.documentElement.classList.contains("lite");
+  }
+
   function init() {
     canvas = document.getElementById("fx");
     if (!canvas) return;
@@ -37,7 +41,9 @@ KK.fx = (function () {
 
   function resize() {
     if (!ctx) return;
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var base = Math.min(window.devicePixelRatio || 1, isLite() ? 1 : 2);
+    // 流畅模式再降一点画布分辨率，4K 电视上省很多填充率
+    dpr = isLite() ? base * 0.75 : base;
     W = window.innerWidth;
     H = window.innerHeight;
     canvas.width = Math.round(W * dpr);
@@ -167,7 +173,8 @@ KK.fx = (function () {
     if (!ctx) return;
     opts = opts || {};
     var colors = opts.colors || ["#ff4d85"];
-    var count = Math.round((opts.count || 24) * (reduced ? 0.4 : 1));
+    var lite = isLite();
+    var count = Math.round((opts.count || 24) * (reduced ? 0.4 : 1) * (lite ? 0.4 : 1));
     var i;
 
     for (i = 0; i < count; i++) {
@@ -191,7 +198,7 @@ KK.fx = (function () {
     }
 
     if (opts.emoji) {
-      var n = reduced ? 2 : 5;
+      var n = reduced || lite ? 2 : 5;
       for (var j = 0; j < n; j++) {
         var b = Math.random() * Math.PI * 2;
         var sp = 220 + Math.random() * 260;
@@ -219,7 +226,7 @@ KK.fx = (function () {
 
   function confetti(count) {
     if (!ctx) return;
-    var n = Math.round((count || 70) * (reduced ? 0.4 : 1));
+    var n = Math.round((count || 70) * (reduced ? 0.4 : 1) * (isLite() ? 0.3 : 1));
     var colors = ["#ff4d85", "#ff7a1a", "#f5a400", "#2fae5b", "#0fa9a0", "#2e86ff", "#8a5cff", "#f04a4a"];
 
     for (var i = 0; i < n; i++) {
@@ -269,6 +276,7 @@ KK.fx = (function () {
     burst: burst,
     confetti: confetti,
     ring: ring,
-    clear: clear
+    clear: clear,
+    refresh: resize
   };
 })();
