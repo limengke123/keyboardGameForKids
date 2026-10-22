@@ -2,6 +2,8 @@
 
 给小朋友随便敲键盘玩的静态小游戏。按哪个键，屏幕上就蹦出一个**大大的字**，配星星、彩纸和一声好听的「咚」。
 
+**在线试玩：** <https://limengke123.github.io/keyboardGameForKids/>
+
 ![预览](preview.jpg)
 
 ## 开始玩
