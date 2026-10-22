@@ -1,0 +1,25 @@
+name: Sync main to gh-pages
+
+# GitHub Pages 目前从 gh-pages 分支发布。
+# 这个工作流让 main 始终自动同步到 gh-pages，所以只需要推 main。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gh-pages-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Force push main to gh-pages
+        run: git push --force origin HEAD:gh-pages
