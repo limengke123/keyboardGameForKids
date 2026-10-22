@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light" />
+<title>咚咚键盘 · 随便敲，随便玩</title>
+<meta name="description" content="给小朋友随便敲键盘玩的纯静态小游戏：按哪个键，屏幕上就蹦出一个大大的字。" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎹</text></svg>" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="bg" aria-hidden="true">
+    <span class="blob b1"></span>
+    <span class="blob b2"></span>
+    <span class="blob b3"></span>
+    <span class="blob b4"></span>
+    <span class="dots"></span>
+  </div>
+  <div class="flash" id="flash" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-emoji" aria-hidden="true">🎹</span>
+      <span class="brand-name">咚咚键盘</span>
+    </div>
+
+    <div class="stars-pill" id="starsPill" title="攒到的星星">
+      <span class="star-ico" aria-hidden="true">⭐</span>
+      <span id="starCount">0</span>
+    </div>
+
+    <nav class="modes" role="tablist" aria-label="玩法">
+      <button class="mode" type="button" role="tab" data-mode="free" aria-selected="true"><span class="mode-emoji" aria-hidden="true">🎲</span>随便按</button>
+      <button class="mode" type="button" role="tab" data-mode="find" aria-selected="false"><span class="mode-emoji" aria-hidden="true">🔍</span>找一找</button>
+      <button class="mode" type="button" role="tab" data-mode="piano" aria-selected="false"><span class="mode-emoji" aria-hidden="true">🎹</span>小钢琴</button>
+    </nav>
+
+    <div class="tools">
+      <button class="icon-btn" type="button" id="btnSound" aria-label="声音开关">🔊</button>
+      <button class="icon-btn" type="button" id="btnFull" aria-label="全屏">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 9V4h5" /><path d="M20 9V4h-5" /><path d="M4 15v5h5" /><path d="M20 15v5h-5" />
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <section class="pane pane-free is-active" data-pane="free" aria-label="随便按">
+      <div class="glyph-box"><div class="glyph" id="gFree" data-fit data-text="?">?</div></div>
+      <p class="caption" id="gFreeCap">按一下键盘吧</p>
+    </section>
+
+    <section class="pane pane-find" data-pane="find" aria-label="找一找">
+      <div class="bubble" id="bubble">
+        <span class="bubble-face" aria-hidden="true">🐰</span>
+        <span class="bubble-body">
+          <span class="bubble-kicker">找一找</span>
+          <span class="bubble-target" id="findTarget">?</span>
+        </span>
+      </div>
+      <div class="glyph-box"><div class="glyph" id="gFind" data-fit data-text="？">？</div></div>
+      <p class="caption" id="gFindCap">按一下这个键吧～</p>
+    </section>
+
+    <section class="pane pane-piano" data-pane="piano" aria-label="小钢琴">
+      <div class="glyph-box"><div class="glyph" id="gPiano" data-fit data-text="🎹">🎹</div></div>
+      <p class="caption" id="gPianoCap">按一下，听听看</p>
+    </section>
+  </main>
+
+  <footer class="trail" id="trail" aria-hidden="true"></footer>
+
+  <canvas id="fx" class="fx" aria-hidden="true"></canvas>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <div class="overlay" id="overlay">
+    <div class="overlay-card">
+      <div class="overlay-emoji" aria-hidden="true">🐣</div>
+      <h1>咚咚键盘</h1>
+      <p>按哪个键，屏幕就蹦出哪个字</p>
+      <button class="start" id="btnStart" type="button">开始玩</button>
+      <p class="overlay-hint">按任意键也可以开始 · 记得打开声音 🔊</p>
+    </div>
+  </div>
+
+  <script src="js/keymap.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/fx.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
