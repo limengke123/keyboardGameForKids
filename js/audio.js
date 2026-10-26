@@ -115,12 +115,12 @@ KK.audio = (function () {
     };
   }
 
-  // 随便按：像木琴“咚”一下
-  function pop(freq) {
+  // 随便按：像木琴“咚”一下。soft = 正在朗读时压低音量，别盖住人声
+  function pop(freq, soft) {
     if (muted) return;
-    tone({ freq: freq, type: "triangle", dur: 0.5, gain: 0.2, echo: 0.28 });
-    tone({ freq: freq * 2, type: "sine", dur: 0.2, gain: 0.05, echo: 0.12 });
-    tone({ freq: freq * 0.5, type: "sine", dur: 0.38, gain: 0.07 });
+    tone({ freq: freq, type: "triangle", dur: 0.5, gain: soft ? 0.1 : 0.2, echo: 0.28 });
+    tone({ freq: freq * 2, type: "sine", dur: 0.2, gain: soft ? 0.025 : 0.05, echo: 0.12 });
+    tone({ freq: freq * 0.5, type: "sine", dur: 0.38, gain: soft ? 0.035 : 0.07 });
   }
 
   // 小钢琴：更长、更柔的音

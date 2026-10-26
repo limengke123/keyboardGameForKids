@@ -38,6 +38,13 @@
 
     <div class="tools">
       <button class="icon-btn" type="button" id="btnSound" aria-label="声音开关">🔊</button>
+      <div class="speech-wrap is-hidden" id="speechWrap">
+        <button class="icon-btn icon-btn--speech" type="button" id="btnSpeech"
+                aria-haspopup="listbox" aria-expanded="false" aria-label="朗读语言" title="朗读语言">
+          <span class="speech-globe" aria-hidden="true">🌍</span><span class="speech-label" id="speechLabel">EN</span>
+        </button>
+        <div class="speech-menu" id="speechMenu" role="listbox" aria-label="朗读语言" hidden></div>
+      </div>
       <button class="icon-btn icon-btn--lite" type="button" id="btnLite" aria-pressed="false"
               title="流畅模式：减少动画，适合电视或旧设备"><span class="lite-label">流畅</span>🐢</button>
       <button class="icon-btn" type="button" id="btnFull" aria-label="全屏">
@@ -80,6 +87,7 @@
 
   <script src="js/keymap.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/speech.js"></script>
   <script src="js/fx.js"></script>
   <script src="js/app.js"></script>
 </body>

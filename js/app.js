@@ -11,13 +11,25 @@
   var COLORS = ["#ff4d85", "#ff7a1a", "#f5a400", "#2fae5b", "#0fa9a0", "#2e86ff", "#8a5cff", "#f04a4a"];
   var STAR_KEY = "dongdong.stars";
   var LITE_KEY = "dongdong.lite";
+  var LANG_KEY = "dongdong.lang";
   var MAX_TRAIL = 8;
+
+  var SPEECH_LANGS = [
+    { id: "zh-CN", name: "中文", short: "中" },
+    { id: "en-US", name: "English", short: "EN" },
+    { id: "fr-FR", name: "Français", short: "FR" },
+    { id: "es-ES", name: "Español", short: "ES" },
+    { id: "de-DE", name: "Deutsch", short: "DE" },
+    { id: "ja-JP", name: "日本語", short: "日" }
+  ];
 
   var state = {
     mode: "free",
     lastColor: "",
     stars: 0,
-    trail: []
+    trail: [],
+    lang: "off",
+    langChosen: false
   };
 
   var audioReady = false;
@@ -214,7 +226,9 @@
       count: 24
     });
 
-    KK.audio.pop(KK.keymap.noteFor(k.code).freq);
+    KK.audio.pop(KK.keymap.noteFor(k.code).freq, speechOn());
+    speakKey(k, 20);
+
     addStars(1);
     pushTrail(k, color);
   }
@@ -287,6 +301,8 @@
       return;
     }
 
+    speakKey(k, 30);
+
     if (k.key === find.target) {
       find.locked = true;
       clearTimeout(find.idleTimer);
@@ -339,6 +355,7 @@
     els.gPianoCap.textContent = "♪ " + note.solfege;
 
     KK.audio.piano(note.freq);
+    speakKey(k, 160);
 
     var r = els.gPiano.getBoundingClientRect();
     var cx = r.left + r.width / 2;
@@ -391,7 +408,9 @@
     KK.audio.init();
     KK.audio.resume();
     KK.audio.setMuted(!KK.audio.isMuted());
+    if (KK.audio.isMuted()) KK.speech.stop();
     renderSound();
+    renderSpeech();
     if (!KK.audio.isMuted()) KK.audio.chime();
   }
 
@@ -438,6 +457,14 @@
     audioReady = true;
     KK.audio.init();
     KK.audio.resume();
+
+    // iOS 等浏览器要等第一次交互后才给出语音列表
+    if (KK.speech.refresh) {
+      KK.speech.refresh();
+      setTimeout(function () {
+        KK.speech.refresh();
+      }, 300);
+    }
   }
 
   function isLite() {
@@ -489,6 +516,178 @@
     applyLite(!isLite(), true);
     if (KK.fx.refresh) KK.fx.refresh();
     refitAll();
+  }
+
+  /* ---------------- 朗读 ---------------- */
+
+  function langMeta(id) {
+    for (var i = 0; i < SPEECH_LANGS.length; i++) {
+      if (SPEECH_LANGS[i].id === id) return SPEECH_LANGS[i];
+    }
+    return null;
+  }
+
+  function getStoredLang() {
+    try {
+      return localStorage.getItem(LANG_KEY);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveLang(id) {
+    try {
+      localStorage.setItem(LANG_KEY, id);
+    } catch (e) {}
+  }
+
+  function availableLangs() {
+    var list = [];
+    for (var i = 0; i < SPEECH_LANGS.length; i++) {
+      if (KK.speech.voiceFor(SPEECH_LANGS[i].id)) list.push(SPEECH_LANGS[i]);
+    }
+    return list;
+  }
+
+  function defaultLang(avail) {
+    for (var i = 0; i < avail.length; i++) {
+      if (avail[i].id === "en-US") return "en-US";
+    }
+    return avail.length ? avail[0].id : "off";
+  }
+
+  function speechOn() {
+    return state.lang !== "off" && !KK.audio.isMuted() && !!KK.speech.voiceFor(state.lang);
+  }
+
+  function speakKey(k, delay) {
+    if (!speechOn()) return;
+    if (!k || !k.key || !/^[A-Z0-9]$/.test(k.key)) return;
+    KK.speech.speak(k.key, state.lang, { delay: delay == null ? 20 : delay });
+  }
+
+  function buildSpeechMenu(avail) {
+    var menu = els.speechMenu;
+    menu.innerHTML = "";
+
+    var title = document.createElement("p");
+    title.className = "speech-menu-title";
+    title.textContent = "朗读语言";
+    menu.appendChild(title);
+
+    var options = [{ id: "off", name: "不朗读", short: "关" }].concat(avail);
+
+    options.forEach(function (lang) {
+      var item = document.createElement("button");
+      item.type = "button";
+      item.className = "speech-item";
+      item.setAttribute("role", "option");
+      item.setAttribute("data-lang", lang.id);
+      item.setAttribute("aria-selected", state.lang === lang.id ? "true" : "false");
+
+      var name = document.createElement("span");
+      name.textContent = lang.name;
+
+      var code = document.createElement("span");
+      code.className = "speech-code";
+      code.textContent = lang.id === "off" ? "🔇" : lang.short;
+
+      item.appendChild(name);
+      item.appendChild(code);
+      menu.appendChild(item);
+    });
+
+    var hint = document.createElement("p");
+    hint.className = "speech-hint";
+    hint.textContent = KK.audio.isMuted() ? "🔇 声音已关闭，朗读也会静音" : "按字母、数字时朗读";
+    menu.appendChild(hint);
+  }
+
+  function renderSpeech() {
+    if (!KK.speech.supported) {
+      els.speechWrap.classList.add("is-hidden");
+      return;
+    }
+
+    var avail = availableLangs();
+    if (!avail.length) {
+      els.speechWrap.classList.add("is-hidden");
+      return;
+    }
+    els.speechWrap.classList.remove("is-hidden");
+
+    var ids = avail.map(function (l) {
+      return l.id;
+    });
+    var stored = getStoredLang();
+
+    if (state.langChosen && state.lang === "off") {
+      state.lang = "off";
+    } else if (state.lang !== "off" && ids.indexOf(state.lang) > -1) {
+      // 本次会话已选，保持
+    } else if (stored === "off") {
+      state.lang = "off";
+    } else if (stored && ids.indexOf(stored) > -1) {
+      state.lang = stored;
+    } else {
+      // 没选过，或选过的语言现在没有语音：先默认英语
+      state.lang = defaultLang(avail);
+    }
+
+    var meta = langMeta(state.lang);
+    els.speechLabel.textContent = meta ? meta.short : "关";
+    els.btnSpeech.classList.toggle("is-off", state.lang === "off");
+    els.btnSpeech.setAttribute("aria-label", "朗读语言：" + (meta ? meta.name : "关闭"));
+
+    buildSpeechMenu(avail);
+  }
+
+  function toggleSpeechMenu(force) {
+    var open = typeof force === "boolean" ? force : els.speechMenu.hidden;
+    els.speechMenu.hidden = !open;
+    els.btnSpeech.setAttribute("aria-expanded", open ? "true" : "false");
+
+    if (open) {
+      var selected =
+        els.speechMenu.querySelector('.speech-item[aria-selected="true"]') ||
+        els.speechMenu.querySelector(".speech-item");
+      if (selected) selected.focus();
+    } else if (document.activeElement && els.speechMenu.contains(document.activeElement)) {
+      els.btnSpeech.focus();
+    }
+  }
+
+  function moveSpeechFocus(delta) {
+    var items = Array.prototype.slice.call(els.speechMenu.querySelectorAll(".speech-item"));
+    if (!items.length) return;
+    var i = items.indexOf(document.activeElement);
+    if (i < 0) i = delta > 0 ? -1 : 0;
+    i = (i + delta + items.length) % items.length;
+    items[i].focus();
+  }
+
+  function selectLang(id) {
+    state.lang = id;
+    state.langChosen = true;
+    saveLang(id);
+    toggleSpeechMenu(false);
+    renderSpeech();
+
+    if (id === "off") {
+      KK.speech.stop();
+      toast("已关闭朗读");
+      return;
+    }
+
+    var meta = langMeta(id);
+    toast("朗读：" + (meta ? meta.name : id));
+
+    if (KK.audio.isMuted()) return;
+
+    ensureAudio();
+    setTimeout(function () {
+      KK.speech.speak("A", id, { delay: 100 });
+    }, 150);
   }
 
   /* ---------------- 键盘事件 ---------------- */
@@ -545,6 +744,33 @@
   }
 
   function onKeydown(e) {
+    if (!els.speechMenu.hidden) {
+      if (e.code === "Escape") {
+        e.preventDefault();
+        toggleSpeechMenu(false);
+        return;
+      }
+      if (e.code === "ArrowDown" || e.code === "ArrowUp") {
+        e.preventDefault();
+        moveSpeechFocus(e.code === "ArrowDown" ? 1 : -1);
+        return;
+      }
+      if (e.code === "Tab") {
+        e.preventDefault();
+        moveSpeechFocus(e.shiftKey ? -1 : 1);
+        return;
+      }
+      if (e.code === "Enter" || e.code === "NumpadEnter" || e.code === "Space") {
+        var activeItem = document.activeElement;
+        if (activeItem && activeItem.classList && activeItem.classList.contains("speech-item")) {
+          e.preventDefault();
+          activeItem.click();
+          return;
+        }
+      }
+      toggleSpeechMenu(false);
+    }
+
     if (e.repeat) {
       if (!e.metaKey && !e.ctrlKey) e.preventDefault();
       return;
@@ -576,6 +802,25 @@
     els.btnLite.addEventListener("click", toggleLite);
     els.btnFull.addEventListener("click", toggleFullscreen);
 
+    els.btnSpeech.addEventListener("click", function (e) {
+      e.stopPropagation();
+      toggleSpeechMenu();
+    });
+
+    els.speechMenu.addEventListener("click", function (e) {
+      var item = e.target && e.target.closest ? e.target.closest(".speech-item") : null;
+      if (!item) return;
+      selectLang(item.getAttribute("data-lang"));
+    });
+
+    document.addEventListener(
+      "pointerdown",
+      function (e) {
+        if (!els.speechMenu.hidden && !els.speechWrap.contains(e.target)) toggleSpeechMenu(false);
+      },
+      { passive: true }
+    );
+
     document.addEventListener("fullscreenchange", syncFull);
     document.addEventListener("webkitfullscreenchange", syncFull);
 
@@ -589,6 +834,10 @@
     els = {
       btnSound: $("btnSound"),
       btnLite: $("btnLite"),
+      speechWrap: $("speechWrap"),
+      btnSpeech: $("btnSpeech"),
+      speechMenu: $("speechMenu"),
+      speechLabel: $("speechLabel"),
       btnFull: $("btnFull"),
       starsPill: $("starsPill"),
       starCount: $("starCount"),
@@ -610,6 +859,8 @@
     renderSound();
     renderTrail();
     bind();
+    renderSpeech();
+    KK.speech.onVoices(renderSpeech);
     applyLite(loadLite(), false);
     KK.fx.init();
     setMode("free");
