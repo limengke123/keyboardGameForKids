@@ -81,12 +81,18 @@
     </section>
 
     <section class="pane pane-number" data-pane="number" aria-label="数字">
-      <div class="glyph-box"><div class="glyph" id="gNumber" data-fit data-text="0">0</div></div>
+      <div class="bubble number-bubble" id="numberBubble">
+        <span class="bubble-face" aria-hidden="true">🎯</span>
+        <span class="bubble-body">
+          <span class="bubble-kicker">按出这个数</span>
+          <span class="bubble-target" id="numberTarget">?</span>
+        </span>
+      </div>
+      <div class="glyph-box"><div class="glyph" id="gNumber" data-fit data-text="?">?</div></div>
       <div class="number-foot">
-        <p class="caption" id="gNumberCap">按数字键 0–9，听听怎么念</p>
+        <p class="caption" id="gNumberCap">按数字键，把上面的数填出来 · ↑↓ 微调</p>
         <div class="number-actions">
-          <button class="number-say" type="button" id="btnSayNumber" title="再听一遍">🔊 再听一遍</button>
-          <button class="number-say" type="button" id="btnClearNumber" title="回到 0">🧽 清空</button>
+          <button class="number-say" type="button" id="btnClearNumber" title="清空输入">🧽 清空</button>
         </div>
       </div>
     </section>

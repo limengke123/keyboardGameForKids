@@ -35,11 +35,11 @@
   var audioReady = false;
 
   var numberState = {
-    raw: "0",
-    timer: 0,
-    hintTimer: 0,
-    lastSpoken: "0",
-    touched: false
+    target: null,
+    raw: "",
+    locked: false,
+    nextTimer: 0,
+    hintTimer: 0
   };
 
   var find = {
@@ -380,30 +380,27 @@
   /* ---------------- 玩法四：数字 ---------------- */
 
   function numberValue() {
+    if (numberState.raw === "") return null;
     var n = parseInt(numberState.raw, 10);
-    return isFinite(n) ? clamp(n, 0, 100) : 0;
+    return isFinite(n) ? clamp(n, 0, 100) : null;
   }
 
   function updateNumberCaption() {
-    if (!els.gNumberCap) return;
+    if (!els.gNumberCap || numberState.locked) return;
+
     if (!KK.speech.supported || els.speechWrap.classList.contains("is-hidden")) {
       els.gNumberCap.textContent = "这个设备没有可用的朗读语音";
       return;
     }
     if (KK.audio.isMuted()) {
-      els.gNumberCap.textContent = "🔇 声音已关闭 · 点右上角打开";
+      els.gNumberCap.textContent = "🔇 声音关着呢 · 打开就能听发音";
       return;
     }
     if (!speechOn()) {
       els.gNumberCap.textContent = "点右上角 🌍 选择语言，就能听发音";
       return;
     }
-    if (!numberState.touched) {
-      els.gNumberCap.textContent = "按数字键 0–9，听听怎么念";
-      return;
-    }
-    var meta = langMeta(state.lang);
-    els.gNumberCap.textContent = (meta ? meta.name + " · " : "") + "↑↓ 加减 · Enter 再听";
+    els.gNumberCap.textContent = "按数字键，把上面的数填出来 · ↑↓ 微调";
   }
 
   function numberHint(msg) {
@@ -413,77 +410,116 @@
     numberState.hintTimer = setTimeout(updateNumberCaption, 1800);
   }
 
-  function updateNumber(delay) {
-    clearTimeout(numberState.timer);
-    var val = numberValue();
-    setGlyph(els.gNumber, String(val), nextColor());
-    updateNumberCaption();
-
-    if (delay === 0) speakNumberNow();
-    else if (delay > 0) numberState.timer = setTimeout(speakNumberNow, delay);
+  function renderNumberInput() {
+    if (numberState.raw === "") {
+      setGlyph(els.gNumber, "?", "#2b2440", { muted: true });
+      return;
+    }
+    setGlyph(els.gNumber, numberState.raw, nextColor());
   }
 
-  function speakNumberNow() {
-    clearTimeout(numberState.timer);
-    var val = numberValue();
+  function startNumberRound() {
+    clearTimeout(numberState.nextTimer);
+    clearTimeout(numberState.hintTimer);
 
-    if (KK.audio.isMuted()) {
-      numberHint("🔇 声音关着呢");
-      return;
-    }
-    if (!KK.speech.voiceFor(state.lang)) {
-      numberHint("点右上角 🌍 选择语言，就能听发音");
-      return;
-    }
+    numberState.locked = false;
+    numberState.raw = "";
 
-    if (numberState.lastSpoken !== String(val)) {
-      numberState.lastSpoken = String(val);
-      addStars(1);
-      pushTrail({ big: String(val) }, state.lastColor);
-    }
+    var next = Math.floor(Math.random() * 101);
+    var guard = 0;
+    while (next === numberState.target && guard++ < 40) next = Math.floor(Math.random() * 101);
+    numberState.target = next;
 
-    KK.speech.speak(String(val), state.lang, { delay: 50, rate: 0.82 });
+    els.numberTarget.textContent = String(next);
+    els.numberTarget.style.setProperty("--tc", nextColor());
+    els.numberTarget.classList.remove("bump");
+    void els.numberTarget.offsetWidth;
+    els.numberTarget.classList.add("bump");
+
+    renderNumberInput();
     updateNumberCaption();
+  }
+
+  function numberSuccess(value) {
+    numberState.locked = true;
+    clearTimeout(numberState.hintTimer);
+
+    setGlyph(els.gNumber, String(value), "#2fae5b");
+    els.gNumberCap.textContent = "找到啦！就是 " + value + " 🎉";
+
+    addStars(5);
+    pushTrail({ big: String(value) }, "#2fae5b");
+
+    KK.audio.success();
+    KK.fx.confetti(48);
+
+    var r = els.gNumber.getBoundingClientRect();
+    KK.fx.burst(r.left + r.width / 2, r.top + r.height / 2, {
+      colors: ["#2fae5b", "#ffd166", "#ff5d8f", "#3d9bff"],
+      count: 26,
+      emoji: "⭐"
+    });
+
+    if (speechOn()) {
+      KK.speech.speak(String(value), state.lang, { delay: 180, rate: 0.82 });
+    }
+
+    numberState.nextTimer = setTimeout(startNumberRound, 1900);
+  }
+
+  function checkNumber() {
+    if (numberState.locked) return;
+    var value = numberValue();
+    if (value !== null && value === numberState.target) numberSuccess(value);
   }
 
   function numberAppend(d) {
-    numberState.touched = true;
+    if (numberState.locked) return;
 
-    // 已经到 100 了，再按数字就当作重新输入
     if (numberState.raw === "100") {
       numberState.raw = d;
-      updateNumber(500);
-      return;
+    } else {
+      var raw = numberState.raw === "" || numberState.raw === "0" ? d : numberState.raw + d;
+      if (parseInt(raw, 10) > 100) {
+        numberHint("最大到 100 哦");
+        return;
+      }
+      numberState.raw = raw;
     }
 
-    var raw = numberState.raw === "0" ? d : numberState.raw + d;
-    if (parseInt(raw, 10) > 100) {
-      numberHint("最大到 100 哦，按 🧽 清空重来");
-      return;
-    }
-
-    numberState.raw = raw;
-    updateNumber(500);
-  }
-
-  function numberClear() {
-    numberState.raw = "0";
-    updateNumber(0);
+    renderNumberInput();
+    checkNumber();
   }
 
   function numberBackspace() {
-    numberState.raw = numberState.raw.length > 1 ? numberState.raw.slice(0, -1) : "0";
-    updateNumber(320);
+    if (numberState.locked) return;
+    numberState.raw = numberState.raw.length > 1 ? numberState.raw.slice(0, -1) : "";
+    renderNumberInput();
+    updateNumberCaption();
+  }
+
+  function numberClear() {
+    if (numberState.locked) return;
+    numberState.raw = "";
+    renderNumberInput();
+    updateNumberCaption();
   }
 
   function numberStep(delta) {
-    numberState.touched = true;
-    numberState.raw = String(clamp(numberValue() + delta, 0, 100));
-    updateNumber(0);
+    if (numberState.locked) return;
+
+    var current = numberValue();
+    var value;
+    if (current === null) value = delta > 0 ? 1 : 0;
+    else value = clamp(current + delta, 0, 100);
+
+    numberState.raw = String(value);
+    renderNumberInput();
+    checkNumber();
   }
 
   function pressNumber(k) {
-    if (!k) return;
+    if (!k || numberState.locked) return;
 
     if (k.key && /^[0-9]$/.test(k.key)) {
       numberAppend(k.key);
@@ -497,26 +533,11 @@
       case "Delete":
         numberClear();
         break;
-      case "Enter":
-      case "NumpadEnter":
-      case "Space":
-        speakNumberNow();
-        break;
       case "ArrowUp":
         numberStep(1);
         break;
       case "ArrowDown":
         numberStep(-1);
-        break;
-      case "Home":
-        numberState.touched = true;
-        numberState.raw = "0";
-        updateNumber(0);
-        break;
-      case "End":
-        numberState.touched = true;
-        numberState.raw = "100";
-        updateNumber(0);
         break;
       default:
         if (/^Key[A-Z]$/.test(k.code)) numberHint("按数字键 0–9 哦～");
@@ -530,7 +551,7 @@
     state.mode = mode;
     clearFindTimers();
     find.locked = false;
-    clearTimeout(numberState.timer);
+    clearTimeout(numberState.nextTimer);
     clearTimeout(numberState.hintTimer);
 
     $$(".pane").forEach(function (p) {
@@ -546,7 +567,7 @@
     } else if (mode === "piano") {
       els.gPianoCap.textContent = "按一下，听听看";
     } else if (mode === "number") {
-      updateNumber(260);
+      startNumberRound();
     } else {
       els.gFreeCap.textContent = "随便按一下键盘吧！";
     }
@@ -756,29 +777,6 @@
       menu.appendChild(item);
     });
 
-    var current = state.lang !== "off" ? KK.speech.voiceFor(state.lang) : null;
-    var candidates = state.lang !== "off" ? KK.speech.voiceCandidates(state.lang) : [];
-
-    if (current && candidates.length > 1) {
-      var voiceRow = document.createElement("button");
-      voiceRow.type = "button";
-      voiceRow.className = "speech-item speech-voice-row";
-      voiceRow.setAttribute("data-voice", "1");
-      voiceRow.setAttribute("aria-label", "换一个声音，当前是 " + current.name);
-
-      var voiceName = document.createElement("span");
-      voiceName.className = "speech-voice-name";
-      voiceName.textContent = "声音：" + current.name;
-
-      var voiceCode = document.createElement("span");
-      voiceCode.className = "speech-code";
-      voiceCode.textContent = "⇄";
-
-      voiceRow.appendChild(voiceName);
-      voiceRow.appendChild(voiceCode);
-      menu.appendChild(voiceRow);
-    }
-
     var hint = document.createElement("p");
     hint.className = "speech-hint";
     hint.textContent = KK.audio.isMuted() ? "🔇 声音已关闭，朗读也会静音" : "按字母、数字时朗读";
@@ -827,36 +825,6 @@
     updateNumberCaption();
   }
 
-  function cycleVoice() {
-    if (state.lang === "off") return;
-
-    var list = KK.speech.voiceCandidates(state.lang);
-    if (list.length < 2) return;
-
-    var current = KK.speech.voiceFor(state.lang);
-    var index = 0;
-    for (var i = 0; i < list.length; i++) {
-      if (current && list[i].voiceURI === current.voiceURI) index = i;
-    }
-
-    var next = list[(index + 1) % list.length];
-    KK.speech.setVoice(state.lang, next.voiceURI);
-    renderSpeech();
-
-    var row = els.speechMenu.querySelector("[data-voice]");
-    if (row && !els.speechMenu.hidden) row.focus();
-
-    ensureAudio();
-    if (KK.audio.isMuted()) return;
-
-    var sample = state.mode === "number" ? String(numberValue()) : "A";
-    KK.speech.speak(sample, state.lang, {
-      delay: 80,
-      rate: state.mode === "number" ? 0.82 : 0.88
-    });
-    toast("声音：" + next.name);
-  }
-
   function toggleSpeechMenu(force) {
     var open = typeof force === "boolean" ? force : els.speechMenu.hidden;
     els.speechMenu.hidden = !open;
@@ -897,15 +865,12 @@
     var meta = langMeta(id);
     toast("朗读：" + (meta ? meta.name : id));
 
-    if (KK.audio.isMuted()) return;
+    // 数字模式要等孩子填对之后再念，这里不试听
+    if (state.mode === "number" || KK.audio.isMuted()) return;
 
     ensureAudio();
-    var sample = state.mode === "number" ? String(numberValue()) : "A";
     setTimeout(function () {
-      KK.speech.speak(sample, id, {
-        delay: 100,
-        rate: state.mode === "number" ? 0.82 : 0.88
-      });
+      KK.speech.speak("A", id, { delay: 100 });
     }, 150);
   }
 
@@ -1019,10 +984,6 @@
     });
 
     els.btnSound.addEventListener("click", toggleSound);
-    els.btnSayNumber.addEventListener("click", function () {
-      ensureAudio();
-      speakNumberNow();
-    });
     els.btnClearNumber.addEventListener("click", function () {
       ensureAudio();
       numberClear();
@@ -1038,10 +999,6 @@
     els.speechMenu.addEventListener("click", function (e) {
       var item = e.target && e.target.closest ? e.target.closest(".speech-item") : null;
       if (!item) return;
-      if (item.hasAttribute("data-voice")) {
-        cycleVoice();
-        return;
-      }
       selectLang(item.getAttribute("data-lang"));
     });
 
@@ -1081,7 +1038,7 @@
       gPianoCap: $("gPianoCap"),
       gNumber: $("gNumber"),
       gNumberCap: $("gNumberCap"),
-      btnSayNumber: $("btnSayNumber"),
+      numberTarget: $("numberTarget"),
       btnClearNumber: $("btnClearNumber"),
       findTarget: $("findTarget"),
       bubble: $("bubble"),

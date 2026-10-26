@@ -18,8 +18,6 @@ KK.speech = (function () {
   var seq = 0;
   var timer = 0;
   var listeners = [];
-  var prefs = null;
-  var VOICE_KEY = "dongdong.voice";
 
   // macOS / iOS 自带的搞怪语音，教学场景直接跳过
   var NOVELTY = /^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Deranged|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Basso|Blow|Bottle|Frog|Funk|Pipe Organ|Grandma|Grandpa|Rocko|Sandy|Shelley|Flo|Eddy|Reed|Radio|Hysterical)\b/i;
@@ -34,33 +32,18 @@ KK.speech = (function () {
     ja: ["Kyoko", "Otoya", "O-ren", "Hattori", "Google 日本語", "Microsoft Nanami", "Microsoft Keita"]
   };
 
-  function readPrefs() {
-    if (prefs) return prefs;
-    prefs = {};
-    try {
-      var raw = localStorage.getItem(VOICE_KEY);
-      var parsed = raw ? JSON.parse(raw) : null;
-      if (parsed && typeof parsed === "object") prefs = parsed;
-    } catch (e) {}
-    return prefs;
-  }
-
-  function setVoice(lang, uri) {
-    var map = readPrefs();
-    map[normalize(lang)] = uri;
-    try {
-      localStorage.setItem(VOICE_KEY, JSON.stringify(map));
-    } catch (e) {}
-  }
-
   function usable(v) {
     return !!(v && v.lang && !NOVELTY.test(v.name || ""));
   }
 
   function scoreVoice(v, preferred) {
     var score = 0;
+
+    // 优先用 Google 的语音
+    if (/^Google\b/i.test(v.name || "")) score += 2000;
+
     var i = preferred.indexOf(v.name);
-    if (i > -1) score += 1000 - i * 10;
+    if (i > -1) score += 500 - i * 10;
     if (v.localService) score += 30;
     if (v.default) score += 20;
     return score;
@@ -131,16 +114,7 @@ KK.speech = (function () {
 
   function voiceFor(lang) {
     var list = voiceCandidates(lang);
-    if (!list.length) return null;
-
-    var map = readPrefs();
-    var uri = map[normalize(lang)];
-    if (uri) {
-      for (var i = 0; i < list.length; i++) {
-        if (list[i].voiceURI === uri) return list[i];
-      }
-    }
-    return list[0];
+    return list.length ? list[0] : null;
   }
 
   function speak(text, lang, opts) {
@@ -215,8 +189,6 @@ KK.speech = (function () {
     supported: supported,
     refresh: refresh,
     voiceFor: voiceFor,
-    voiceCandidates: voiceCandidates,
-    setVoice: setVoice,
     speak: speak,
     stop: stop,
     onVoices: onVoices,
