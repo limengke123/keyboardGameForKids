@@ -120,7 +120,12 @@ KK.keymap = (function () {
       ["mouton", "🐑"], ["singe", "🐵"], ["vache", "🐮"], ["canard", "🦆"], ["banane", "🍌"],
       ["citron", "🍋"], ["cerise", "🍒"], ["fourmi", "🐜"], ["hibou", "🦉"], ["renard", "🦊"],
       ["requin", "🦈"], ["maison", "🏠"], ["jardin", "🌷"], ["sapin", "🎄"], ["nuage", "☁️"],
-      ["soleil", "☀️"]
+      ["soleil", "☀️"],
+      ["clé", "🔑"], ["zèbre", "🦓"], ["boîte", "📦"], ["gâteau", "🍰"], ["étoile", "⭐"],
+      ["école", "🏫"], ["père", "👨"], ["mère", "👩"], ["frère", "👦"], ["chèvre", "🐐"],
+      ["fête", "🎉"], ["forêt", "🌲"], ["île", "🏝️"], ["café", "☕"], ["thé", "🍵"],
+      ["vélo", "🚲"], ["métro", "🚇"], ["télé", "📺"], ["tête", "🧑"], ["année", "📅"],
+      ["leçon", "📚"], ["garçon", "👦"], ["noël", "🎅"], ["maïs", "🌽"], ["été", "🏖️"]
     ]
   };
 

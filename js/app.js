@@ -36,6 +36,7 @@
 
   var spellState = {
     word: "",
+    type: "",
     emoji: "",
     lang: "en-US",
     typed: "",
@@ -641,6 +642,26 @@
 
   /* ---------------- 玩法五：拼词 ---------------- */
 
+  function stripAccents(value) {
+    try {
+      return String(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    } catch (e) {
+      return String(value);
+    }
+  }
+
+  function spellBaseLetter(value) {
+    if (!value) return null;
+    var base = stripAccents(value).toUpperCase();
+    return /^[A-Z]$/.test(base) ? base : null;
+  }
+
+  function spellCaption() {
+    return spellState.word && spellState.word !== spellState.type
+      ? "按顺序打出这个单词 · 重音会自动补上"
+      : "按顺序打出这个单词 · Backspace 退一格";
+  }
+
   function spellSpeechReady() {
     return state.lang !== "off" && !KK.audio.isMuted() && !!KK.speech.voiceFor(spellState.lang);
   }
@@ -650,13 +671,13 @@
     els.spellCap.textContent = msg;
     clearTimeout(spellState.hintTimer);
     spellState.hintTimer = setTimeout(function () {
-      if (!spellState.locked) els.spellCap.textContent = "按顺序打出这个单词 · Backspace 退一格";
+      if (!spellState.locked) els.spellCap.textContent = spellCaption();
     }, 1400);
   }
 
-  function buildSpellSlots(word) {
+  function buildSpellSlots(length) {
     els.spellSlots.innerHTML = "";
-    for (var i = 0; i < word.length; i++) {
+    for (var i = 0; i < length; i++) {
       var slot = document.createElement("span");
       slot.className = "spell-slot";
       if (i === 0) slot.classList.add("is-next");
@@ -667,10 +688,11 @@
   function renderSpellSlots() {
     var slots = els.spellSlots.children;
     var typed = spellState.typed;
+    var display = spellState.word;
 
     for (var i = 0; i < slots.length; i++) {
       var slot = slots[i];
-      var ch = typed.charAt(i);
+      var ch = i < typed.length ? display.charAt(i).toUpperCase() : "";
       slot.textContent = ch;
       slot.classList.toggle("is-filled", !!ch);
       slot.classList.toggle("is-next", !spellState.locked && i === typed.length);
@@ -696,6 +718,7 @@
     } while (word === spellState.word && guard++ < 30);
 
     spellState.word = word;
+    spellState.type = stripAccents(word);
     spellState.emoji = emoji;
     spellState.lang = bank.lang;
     spellState.typed = "";
@@ -709,12 +732,12 @@
     els.spellBig.textContent = "";
     els.spellSlots.hidden = false;
     els.spellSlots.classList.remove("is-wrong");
-    els.spellCap.textContent = "按顺序打出这个单词 · Backspace 退一格";
+    els.spellCap.textContent = spellCaption();
 
-    buildSpellSlots(word);
+    buildSpellSlots(spellState.type.length);
 
     if (spellSpeechReady()) {
-      KK.speech.speak(word, spellState.lang, { delay: 360, rate: 0.85 });
+      KK.speech.speak(spellState.word, spellState.lang, { delay: 360, rate: 0.85 });
     }
   }
 
@@ -759,7 +782,7 @@
       if (spellState.typed.length > 0) {
         spellState.typed = spellState.typed.slice(0, -1);
         renderSpellSlots();
-        els.spellCap.textContent = "按顺序打出这个单词 · Backspace 退一格";
+        els.spellCap.textContent = spellCaption();
         clearTimeout(spellState.hintTimer);
       }
       return;
@@ -768,7 +791,7 @@
     if (k.code === "Delete") {
       spellState.typed = "";
       renderSpellSlots();
-      els.spellCap.textContent = "按顺序打出这个单词 · Backspace 退一格";
+      els.spellCap.textContent = spellCaption();
       clearTimeout(spellState.hintTimer);
       return;
     }
@@ -780,17 +803,16 @@
       return;
     }
 
-    if (!k.key) return;
-
-    if (!/^[A-Z]$/.test(k.key)) {
-      if (/^[0-9]$/.test(k.key)) spellHint("按字母键拼单词哦～");
+    var base = spellBaseLetter(k.key);
+    if (!base) {
+      if (k.key && /^[0-9]$/.test(k.key)) spellHint("按字母键拼单词哦～");
       return;
     }
 
-    var expected = spellState.word.charAt(spellState.typed.length).toUpperCase();
+    var expected = spellState.type.charAt(spellState.typed.length).toUpperCase();
 
-    if (k.key === expected) {
-      spellState.typed += k.key;
+    if (base === expected) {
+      spellState.typed += base;
       renderSpellSlots();
 
       var slot = els.spellSlots.children[spellState.typed.length - 1];
@@ -801,10 +823,10 @@
       }
 
       KK.audio.pop(KK.keymap.noteFor(k.code).freq, true);
-      els.spellCap.textContent = "按顺序打出这个单词 · Backspace 退一格";
+      els.spellCap.textContent = spellCaption();
       clearTimeout(spellState.hintTimer);
 
-      if (spellState.typed.length === spellState.word.length) spellSuccess();
+      if (spellState.typed.length === spellState.type.length) spellSuccess();
       return;
     }
 
