@@ -38,8 +38,10 @@
     target: null,
     raw: "",
     locked: false,
+    wrong: false,
     nextTimer: 0,
-    hintTimer: 0
+    hintTimer: 0,
+    clearTimer: 0
   };
 
   var find = {
@@ -164,7 +166,6 @@
   function celebrate() {
     KK.fx.confetti(70);
     KK.audio.sweep();
-    toast("⭐ 太棒啦！你已经攒了 " + state.stars + " 颗星星");
   }
 
   function toast(msg) {
@@ -290,8 +291,11 @@
     els.gFindCap.textContent = "按一下这个键吧～";
     findIdle();
 
-    // 新题目来了：小提示音
+    // 新题目来了：先念一次目标
     KK.audio.chime();
+    if (speechOn()) {
+      KK.speech.speak(t, state.lang, { delay: 450, rate: 0.88 });
+    }
     armHint();
   }
 
@@ -386,7 +390,7 @@
   }
 
   function updateNumberCaption() {
-    if (!els.gNumberCap || numberState.locked) return;
+    if (!els.gNumberCap || numberState.locked || numberState.wrong) return;
 
     if (!KK.speech.supported || els.speechWrap.classList.contains("is-hidden")) {
       els.gNumberCap.textContent = "这个设备没有可用的朗读语音";
@@ -421,9 +425,11 @@
   function startNumberRound() {
     clearTimeout(numberState.nextTimer);
     clearTimeout(numberState.hintTimer);
+    clearTimeout(numberState.clearTimer);
 
     numberState.locked = false;
     numberState.raw = "";
+    numberState.wrong = false;
 
     var next = Math.floor(Math.random() * 101);
     var guard = 0;
@@ -438,11 +444,17 @@
 
     renderNumberInput();
     updateNumberCaption();
+
+    if (speechOn()) {
+      KK.speech.speak(String(next), state.lang, { delay: 340, rate: 0.82 });
+    }
   }
 
   function numberSuccess(value) {
     numberState.locked = true;
+    numberState.wrong = false;
     clearTimeout(numberState.hintTimer);
+    clearTimeout(numberState.clearTimer);
 
     setGlyph(els.gNumber, String(value), "#2fae5b");
     els.gNumberCap.textContent = "找到啦！就是 " + value + " 🎉";
@@ -467,46 +479,77 @@
     numberState.nextTimer = setTimeout(startNumberRound, 1900);
   }
 
-  function checkNumber() {
+  function clearNumberInput() {
+    clearTimeout(numberState.clearTimer);
+    numberState.raw = "";
+    numberState.wrong = false;
+    renderNumberInput();
+    updateNumberCaption();
+  }
+
+  function validateNumber() {
     if (numberState.locked) return;
-    var value = numberValue();
-    if (value !== null && value === numberState.target) numberSuccess(value);
+
+    var raw = numberState.raw;
+    if (raw === "") {
+      numberState.wrong = false;
+      updateNumberCaption();
+      return;
+    }
+
+    var targetStr = String(numberState.target);
+
+    if (raw === targetStr) {
+      numberSuccess(numberState.target);
+      return;
+    }
+
+    // 还是目标的前缀，继续等孩子输入
+    if (targetStr.indexOf(raw) === 0) {
+      numberState.wrong = false;
+      clearTimeout(numberState.clearTimer);
+      renderNumberInput();
+      updateNumberCaption();
+      return;
+    }
+
+    // 不可能拼成目标了：错误音 + 变红，稍后自动清空
+    if (!numberState.wrong) {
+      numberState.wrong = true;
+      KK.audio.oops();
+    }
+    setGlyph(els.gNumber, raw, "#f04a4a");
+    els.gNumberCap.textContent = "不对哦，再试一次：按出 " + targetStr;
+    clearTimeout(numberState.clearTimer);
+    numberState.clearTimer = setTimeout(clearNumberInput, 800);
   }
 
   function numberAppend(d) {
     if (numberState.locked) return;
+    if (numberState.raw.length >= 3) return;
 
-    if (numberState.raw === "100") {
-      numberState.raw = d;
-    } else {
-      var raw = numberState.raw === "" || numberState.raw === "0" ? d : numberState.raw + d;
-      if (parseInt(raw, 10) > 100) {
-        numberHint("最大到 100 哦");
-        return;
-      }
-      numberState.raw = raw;
-    }
-
+    clearTimeout(numberState.clearTimer);
+    numberState.raw = numberState.raw === "" || numberState.raw === "0" ? d : numberState.raw + d;
     renderNumberInput();
-    checkNumber();
+    validateNumber();
   }
 
   function numberBackspace() {
     if (numberState.locked) return;
+    clearTimeout(numberState.clearTimer);
     numberState.raw = numberState.raw.length > 1 ? numberState.raw.slice(0, -1) : "";
     renderNumberInput();
-    updateNumberCaption();
+    validateNumber();
   }
 
   function numberClear() {
     if (numberState.locked) return;
-    numberState.raw = "";
-    renderNumberInput();
-    updateNumberCaption();
+    clearNumberInput();
   }
 
   function numberStep(delta) {
     if (numberState.locked) return;
+    clearTimeout(numberState.clearTimer);
 
     var current = numberValue();
     var value;
@@ -515,7 +558,7 @@
 
     numberState.raw = String(value);
     renderNumberInput();
-    checkNumber();
+    validateNumber();
   }
 
   function pressNumber(k) {
@@ -553,6 +596,7 @@
     find.locked = false;
     clearTimeout(numberState.nextTimer);
     clearTimeout(numberState.hintTimer);
+    clearTimeout(numberState.clearTimer);
 
     $$(".pane").forEach(function (p) {
       p.classList.toggle("is-active", p.dataset.pane === mode);

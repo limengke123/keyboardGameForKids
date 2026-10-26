@@ -827,18 +827,21 @@ button:focus-visible {
 
 .toast {
   position: fixed;
-  left: 50%;
+  right: 14px;
+  right: clamp(12px, 2vw, 26px);
   top: 90px;
   top: clamp(74px, 12vh, 116px);
   z-index: 60;
-  transform: translate(-50%, -10px);
-  max-width: 90vw;
-  padding: 13px 26px;
+  left: auto;
+  transform: translateY(-10px);
+  max-width: 360px;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 10px 18px;
   border-radius: 999px;
   background: #fff;
   box-shadow: 0 18px 44px rgba(43, 36, 64, 0.16);
-  font-size: 18px;
-  font-size: clamp(15px, 2.2vh, 22px);
+  font-size: 15px;
+  font-size: clamp(14px, 1.9vh, 18px);
   font-weight: 800;
   color: var(--ink);
   opacity: 0;
@@ -848,7 +851,7 @@ button:focus-visible {
 
 .toast.show {
   opacity: 1;
-  transform: translate(-50%, 0);
+  transform: translateY(0);
 }
 
 /* ---------- 动画 ---------- */
