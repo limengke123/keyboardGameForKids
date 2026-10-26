@@ -681,6 +681,16 @@ button:focus-visible {
   animation: bump 0.45s cubic-bezier(0.2, 1.6, 0.4, 1);
 }
 
+.bubble-word {
+  margin-top: 2px;
+  font-size: 14px;
+  font-size: clamp(14px, 2vh, 22px);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
 .pane-find .glyph-box {
   flex: 1 1 auto;
   width: 100%;

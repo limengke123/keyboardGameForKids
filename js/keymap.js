@@ -40,6 +40,96 @@ KK.keymap = (function () {
     Z: ["斑马", "🦓"]
   };
 
+  // 找一找里的「字母 + 单词」按语言各一套
+  var EN_WORDS = {
+    A: ["apple", "🍎"],
+    B: ["balloon", "🎈"],
+    C: ["cat", "🐱"],
+    D: ["dog", "🐶"],
+    E: ["elephant", "🐘"],
+    F: ["fish", "🐟"],
+    G: ["grapes", "🍇"],
+    H: ["hat", "🎩"],
+    I: ["ice cream", "🍦"],
+    J: ["juice", "🧃"],
+    K: ["kite", "🪁"],
+    L: ["lion", "🦁"],
+    M: ["moon", "🌙"],
+    N: ["nose", "👃"],
+    O: ["orange", "🍊"],
+    P: ["panda", "🐼"],
+    Q: ["queen", "👑"],
+    R: ["rabbit", "🐰"],
+    S: ["sun", "☀️"],
+    T: ["tiger", "🐯"],
+    U: ["umbrella", "☂️"],
+    V: ["violin", "🎻"],
+    W: ["whale", "🐳"],
+    X: ["xylophone", "🎹"],
+    Y: ["yo-yo", "🪀"],
+    Z: ["zebra", "🦓"]
+  };
+
+  var FR_WORDS = {
+    A: ["avion", "✈️"],
+    B: ["ballon", "🎈"],
+    C: ["chat", "🐱"],
+    D: ["dauphin", "🐬"],
+    E: ["éléphant", "🐘"],
+    F: ["fleur", "🌸"],
+    G: ["girafe", "🦒"],
+    H: ["hibou", "🦉"],
+    I: ["igloo", "🛖"],
+    J: ["jardin", "🌳"],
+    K: ["koala", "🐨"],
+    L: ["lune", "🌙"],
+    M: ["maison", "🏠"],
+    N: ["nuage", "☁️"],
+    O: ["orange", "🍊"],
+    P: ["pomme", "🍎"],
+    Q: ["quatre", "4️⃣"],
+    R: ["renard", "🦊"],
+    S: ["soleil", "☀️"],
+    T: ["tortue", "🐢"],
+    U: ["uniforme", "👕"],
+    V: ["vélo", "🚲"],
+    W: ["wagon", "🚃"],
+    X: ["xylophone", "🎹"],
+    Y: ["yaourt", "🥣"],
+    Z: ["zèbre", "🦓"]
+  };
+
+  var WORDS = {
+    "zh-CN": LETTER_WORDS,
+    "en-US": EN_WORDS,
+    "fr-FR": FR_WORDS
+  };
+
+  var PHRASE = {
+    "zh-CN": function (letter, word) {
+      return letter + "，" + word;
+    },
+    "en-US": function (letter, word) {
+      return letter + " for " + word;
+    },
+    "fr-FR": function (letter, word) {
+      return letter + " comme " + word;
+    }
+  };
+
+  function wordFor(letter, lang) {
+    var table = WORDS[lang];
+    var item = table && table[letter];
+    if (!item) return null;
+
+    var make = PHRASE[lang];
+    return {
+      word: item[0],
+      emoji: item[1],
+      phrase: make ? make(letter, item[0]) : letter
+    };
+  }
+
   var DIGIT_WORDS = {
     "0": ["鸡蛋", "🥚"],
     "1": ["蜡烛", "🕯️"],
@@ -227,6 +317,7 @@ KK.keymap = (function () {
     resolve: resolve,
     noteFor: noteFor,
     FIND_POOL: FIND_POOL,
-    LETTER_WORDS: LETTER_WORDS
+    LETTER_WORDS: LETTER_WORDS,
+    wordFor: wordFor
   };
 })();

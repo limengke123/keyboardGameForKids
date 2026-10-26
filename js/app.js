@@ -259,6 +259,44 @@
     setGlyph(els.gFind, "？", "#2b2440", { muted: true });
   }
 
+  function renderFindWord() {
+    if (!els.findWord) return;
+
+    var info = find.target ? KK.keymap.wordFor(find.target, state.lang) : null;
+    if (!info) {
+      els.findWord.hidden = true;
+      els.findWord.textContent = "";
+      return;
+    }
+
+    els.findWord.hidden = false;
+    els.findWord.textContent = info.word + " " + info.emoji;
+  }
+
+  function speakFindTarget(letter) {
+    if (!speechOn()) return;
+
+    var info = KK.keymap.wordFor(letter, state.lang);
+    if (info) {
+      KK.speech.speak(info.phrase, state.lang, { delay: 450, rate: 0.86 });
+    } else {
+      KK.speech.speak(letter, state.lang, { delay: 450, rate: 0.88 });
+    }
+  }
+
+  function speakFindKey(k, delay) {
+    if (!speechOn()) return;
+    if (!k || !k.key || !/^[A-Z0-9]$/.test(k.key)) return;
+
+    var wait = delay == null ? 30 : delay;
+    var info = KK.keymap.wordFor(k.key, state.lang);
+    if (info) {
+      KK.speech.speak(info.phrase, state.lang, { delay: wait, rate: 0.86 });
+    } else {
+      KK.speech.speak(k.key, state.lang, { delay: wait, rate: 0.88 });
+    }
+  }
+
   function armHint() {
     clearTimeout(find.idleTimer);
     find.idleTimer = setTimeout(function () {
@@ -288,14 +326,13 @@
     void els.findTarget.offsetWidth;
     els.findTarget.classList.add("bump");
 
+    renderFindWord();
     els.gFindCap.textContent = "按一下这个键吧～";
     findIdle();
 
-    // 新题目来了：先念一次目标
+    // 新题目来了：先念一次「字母 + 单词」
     KK.audio.chime();
-    if (speechOn()) {
-      KK.speech.speak(t, state.lang, { delay: 450, rate: 0.88 });
-    }
+    speakFindTarget(t);
     armHint();
   }
 
@@ -313,7 +350,7 @@
       return;
     }
 
-    speakKey(k, 30);
+    speakFindKey(k, 30);
 
     if (k.key === find.target) {
       find.locked = true;
@@ -867,6 +904,7 @@
 
     buildSpeechMenu(avail);
     updateNumberCaption();
+    renderFindWord();
   }
 
   function toggleSpeechMenu(force) {
@@ -1085,6 +1123,7 @@
       numberTarget: $("numberTarget"),
       btnClearNumber: $("btnClearNumber"),
       findTarget: $("findTarget"),
+      findWord: $("findWord"),
       bubble: $("bubble"),
       trail: $("trail"),
       toast: $("toast"),
