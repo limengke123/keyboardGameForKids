@@ -35,6 +35,7 @@
       <button class="mode" type="button" role="tab" data-mode="find" aria-selected="false" aria-label="找一找" title="找一找"><span class="mode-emoji" aria-hidden="true">🔍</span><span class="mode-text">找一找</span></button>
       <button class="mode" type="button" role="tab" data-mode="piano" aria-selected="false" aria-label="小钢琴" title="小钢琴"><span class="mode-emoji" aria-hidden="true">🎹</span><span class="mode-text">小钢琴</span></button>
       <button class="mode" type="button" role="tab" data-mode="number" aria-selected="false" aria-label="数字" title="数字"><span class="mode-emoji" aria-hidden="true">🔢</span><span class="mode-text">数字</span></button>
+      <button class="mode" type="button" role="tab" data-mode="spell" aria-selected="false" aria-label="拼词" title="拼词"><span class="mode-emoji" aria-hidden="true">🔤</span><span class="mode-text">拼词</span></button>
     </nav>
 
     <div class="tools">
@@ -96,6 +97,22 @@
           <button class="number-say" type="button" id="btnClearNumber" title="清空输入">🧽 清空</button>
         </div>
       </div>
+    </section>
+
+    <section class="pane pane-spell" data-pane="spell" aria-label="拼词">
+      <div class="bubble spell-bubble">
+        <span class="bubble-face spell-face" id="spellEmoji" aria-hidden="true">?</span>
+        <span class="bubble-body">
+          <span class="bubble-kicker">拼出这个单词</span>
+          <span class="spell-word" id="spellWord">cat</span>
+          <span class="spell-lang" id="spellLang">English</span>
+        </span>
+      </div>
+      <div class="spell-stage">
+        <div class="spell-slots" id="spellSlots"></div>
+        <div class="spell-big" id="spellBig" hidden></div>
+      </div>
+      <p class="caption" id="spellCap">按顺序打出这个单词 · Backspace 退一格</p>
     </section>
   </main>
 

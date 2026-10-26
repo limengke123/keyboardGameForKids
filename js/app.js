@@ -34,6 +34,17 @@
 
   var audioReady = false;
 
+  var spellState = {
+    word: "",
+    emoji: "",
+    lang: "en-US",
+    typed: "",
+    locked: false,
+    nextTimer: 0,
+    hintTimer: 0,
+    wrongTimer: 0
+  };
+
   var numberState = {
     target: null,
     raw: "",
@@ -463,6 +474,9 @@
     clearTimeout(numberState.nextTimer);
     clearTimeout(numberState.hintTimer);
     clearTimeout(numberState.clearTimer);
+    clearTimeout(spellState.nextTimer);
+    clearTimeout(spellState.hintTimer);
+    clearTimeout(spellState.wrongTimer);
 
     numberState.locked = false;
     numberState.raw = "";
@@ -625,6 +639,187 @@
     }
   }
 
+  /* ---------------- 玩法五：拼词 ---------------- */
+
+  function spellSpeechReady() {
+    return state.lang !== "off" && !KK.audio.isMuted() && !!KK.speech.voiceFor(spellState.lang);
+  }
+
+  function spellHint(msg) {
+    if (!els.spellCap) return;
+    els.spellCap.textContent = msg;
+    clearTimeout(spellState.hintTimer);
+    spellState.hintTimer = setTimeout(function () {
+      if (!spellState.locked) els.spellCap.textContent = "按顺序打出这个单词 · Backspace 退一格";
+    }, 1400);
+  }
+
+  function buildSpellSlots(word) {
+    els.spellSlots.innerHTML = "";
+    for (var i = 0; i < word.length; i++) {
+      var slot = document.createElement("span");
+      slot.className = "spell-slot";
+      if (i === 0) slot.classList.add("is-next");
+      els.spellSlots.appendChild(slot);
+    }
+  }
+
+  function renderSpellSlots() {
+    var slots = els.spellSlots.children;
+    var typed = spellState.typed;
+
+    for (var i = 0; i < slots.length; i++) {
+      var slot = slots[i];
+      var ch = typed.charAt(i);
+      slot.textContent = ch;
+      slot.classList.toggle("is-filled", !!ch);
+      slot.classList.toggle("is-next", !spellState.locked && i === typed.length);
+      if (ch) slot.style.setProperty("--sc", COLORS[i % COLORS.length]);
+      else slot.style.removeProperty("--sc");
+    }
+  }
+
+  function startSpellRound() {
+    clearTimeout(spellState.nextTimer);
+    clearTimeout(spellState.hintTimer);
+    clearTimeout(spellState.wrongTimer);
+
+    var bank = KK.keymap.spellBank(state.lang);
+    var word = "";
+    var emoji = "";
+    var guard = 0;
+
+    do {
+      var item = bank.words[Math.floor(Math.random() * bank.words.length)];
+      word = item[0];
+      emoji = item[1];
+    } while (word === spellState.word && guard++ < 30);
+
+    spellState.word = word;
+    spellState.emoji = emoji;
+    spellState.lang = bank.lang;
+    spellState.typed = "";
+    spellState.locked = false;
+
+    els.spellEmoji.textContent = emoji;
+    els.spellWord.textContent = word;
+    els.spellLang.textContent = bank.lang === "fr-FR" ? "Français" : "English";
+    els.spellBig.hidden = true;
+    els.spellBig.classList.remove("pop");
+    els.spellBig.textContent = "";
+    els.spellSlots.hidden = false;
+    els.spellSlots.classList.remove("is-wrong");
+    els.spellCap.textContent = "按顺序打出这个单词 · Backspace 退一格";
+
+    buildSpellSlots(word);
+
+    if (spellSpeechReady()) {
+      KK.speech.speak(word, spellState.lang, { delay: 360, rate: 0.85 });
+    }
+  }
+
+  function spellSuccess() {
+    spellState.locked = true;
+    clearTimeout(spellState.nextTimer);
+    clearTimeout(spellState.hintTimer);
+    clearTimeout(spellState.wrongTimer);
+
+    els.spellSlots.classList.remove("is-wrong");
+    els.spellCap.textContent = "拼对啦！" + spellState.word + " " + spellState.emoji + " 🎉";
+    els.spellSlots.hidden = true;
+    els.spellBig.textContent = spellState.emoji;
+    els.spellBig.hidden = false;
+    els.spellBig.classList.remove("pop");
+    void els.spellBig.offsetWidth;
+    els.spellBig.classList.add("pop");
+
+    addStars(5);
+    pushTrail({ big: spellState.word.toUpperCase() }, "#2fae5b");
+    KK.audio.success();
+    KK.fx.confetti(52);
+
+    var r = els.spellBig.getBoundingClientRect();
+    KK.fx.burst(r.left + r.width / 2, r.top + r.height / 2, {
+      colors: ["#2fae5b", "#ffd166", "#ff5d8f", "#3d9bff"],
+      count: 24,
+      emoji: "⭐"
+    });
+
+    if (spellSpeechReady()) {
+      KK.speech.speak(spellState.word, spellState.lang, { delay: 180, rate: 0.85 });
+    }
+
+    spellState.nextTimer = setTimeout(startSpellRound, 1900);
+  }
+
+  function pressSpell(k) {
+    if (!k || spellState.locked) return;
+
+    if (k.code === "Backspace") {
+      if (spellState.typed.length > 0) {
+        spellState.typed = spellState.typed.slice(0, -1);
+        renderSpellSlots();
+        els.spellCap.textContent = "按顺序打出这个单词 · Backspace 退一格";
+        clearTimeout(spellState.hintTimer);
+      }
+      return;
+    }
+
+    if (k.code === "Delete") {
+      spellState.typed = "";
+      renderSpellSlots();
+      els.spellCap.textContent = "按顺序打出这个单词 · Backspace 退一格";
+      clearTimeout(spellState.hintTimer);
+      return;
+    }
+
+    if (k.code === "Enter" || k.code === "NumpadEnter" || k.code === "Space") {
+      if (spellSpeechReady()) {
+        KK.speech.speak(spellState.word, spellState.lang, { delay: 40, rate: 0.85 });
+      }
+      return;
+    }
+
+    if (!k.key) return;
+
+    if (!/^[A-Z]$/.test(k.key)) {
+      if (/^[0-9]$/.test(k.key)) spellHint("按字母键拼单词哦～");
+      return;
+    }
+
+    var expected = spellState.word.charAt(spellState.typed.length).toUpperCase();
+
+    if (k.key === expected) {
+      spellState.typed += k.key;
+      renderSpellSlots();
+
+      var slot = els.spellSlots.children[spellState.typed.length - 1];
+      if (slot) {
+        slot.classList.remove("pop");
+        void slot.offsetWidth;
+        slot.classList.add("pop");
+      }
+
+      KK.audio.pop(KK.keymap.noteFor(k.code).freq, true);
+      els.spellCap.textContent = "按顺序打出这个单词 · Backspace 退一格";
+      clearTimeout(spellState.hintTimer);
+
+      if (spellState.typed.length === spellState.word.length) spellSuccess();
+      return;
+    }
+
+    KK.audio.oops();
+    els.spellSlots.classList.remove("is-wrong");
+    void els.spellSlots.offsetWidth;
+    els.spellSlots.classList.add("is-wrong");
+    spellHint("按顺序来，再看看上面的单词");
+
+    clearTimeout(spellState.wrongTimer);
+    spellState.wrongTimer = setTimeout(function () {
+      els.spellSlots.classList.remove("is-wrong");
+    }, 500);
+  }
+
   /* ---------------- 模式切换 ---------------- */
 
   function setMode(mode) {
@@ -649,6 +844,8 @@
       els.gPianoCap.textContent = "按一下，听听看";
     } else if (mode === "number") {
       startNumberRound();
+    } else if (mode === "spell") {
+      startSpellRound();
     } else {
       els.gFreeCap.textContent = "随便按一下键盘吧！";
     }
@@ -950,6 +1147,11 @@
     // 数字模式要等孩子填对之后再念，这里不试听
     if (state.mode === "number" || KK.audio.isMuted()) return;
 
+    if (state.mode === "spell") {
+      startSpellRound();
+      return;
+    }
+
     ensureAudio();
     setTimeout(function () {
       KK.speech.speak("A", id, { delay: 100 });
@@ -1008,6 +1210,7 @@
     else if (state.mode === "find") pressFind(k);
     else if (state.mode === "piano") pressPiano(k);
     else if (state.mode === "number") pressNumber(k);
+    else if (state.mode === "spell") pressSpell(k);
   }
 
   function onKeydown(e) {
@@ -1121,6 +1324,12 @@
       gNumber: $("gNumber"),
       gNumberCap: $("gNumberCap"),
       numberTarget: $("numberTarget"),
+      spellEmoji: $("spellEmoji"),
+      spellWord: $("spellWord"),
+      spellLang: $("spellLang"),
+      spellSlots: $("spellSlots"),
+      spellBig: $("spellBig"),
+      spellCap: $("spellCap"),
       btnClearNumber: $("btnClearNumber"),
       findTarget: $("findTarget"),
       findWord: $("findWord"),
@@ -1155,7 +1364,9 @@
 
     if (query.get("demo") === "1") {
       var demoMode = query.get("mode");
-      if (demoMode === "find" || demoMode === "piano" || demoMode === "number") setMode(demoMode);
+      if (demoMode === "find" || demoMode === "piano" || demoMode === "number" || demoMode === "spell") {
+        setMode(demoMode);
+      }
 
       var key = (query.get("key") || "").toUpperCase();
       var code = query.get("code") || "";

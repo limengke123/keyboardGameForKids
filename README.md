@@ -1,6 +1,6 @@
 # 咚咚键盘 🎹
 
-给小朋友随便敲键盘玩的静态小游戏。按哪个键，屏幕上就蹦出一个**大大的字**，还会用你选的语言把它念出来；数字模式会随机出 0–100，让孩子按出来再听发音。配星星、彩纸和一声好听的「咚」。
+给小朋友随便敲键盘玩的静态小游戏。按哪个键，屏幕上就蹦出一个**大大的字**，还会用你选的语言把它念出来；数字模式会随机出 0–100，拼词模式会给出 emoji 和单词让孩子按出来。配星星、彩纸和一声好听的「咚」。
 
 **在线试玩：** <https://limengke123.github.io/keyboardGameForKids/>
 
@@ -13,7 +13,7 @@
 - 浏览器规定必须先有用户操作才能出声，所以第一次按键 / 点击后才有音效和朗读。
 - 也可以整个文件夹丢到任意静态服务器 / GitHub Pages / 内网共享目录。
 
-## 四种玩法
+## 五种玩法
 
 ### 🎲 随便按
 
@@ -51,6 +51,19 @@
 
 ![数字模式](preview-number.jpg)
 
+### 🔤 拼词
+
+屏幕上方给出一个 emoji 和对应的单词（3–6 个字母），照着顺序按出来。
+
+打对字母会一格一格填上；打错只会轻轻晃一下、响个提示音，**不扣分**。
+拼完后 emoji 会跳出来、撒彩纸、+5 颗星，并念出这个单词。
+`Backspace` 退一格，`Delete` 清空，`Enter` 再听一遍。
+
+每个单词的「插图」就是 emoji，**不需要单独准备图片**，项目里没有图片资源。
+英语 / 法语各有一套词库：选 Français 时用法语词，其他语言用英语词；单词下面会标 `English` / `Français`。
+
+![拼词](preview-spell.jpg)
+
 ## 🗣 按字母 / 数字朗读
 
 按字母、数字时，会用浏览器自带的语音把它念出来（不下载音频文件）。
@@ -65,6 +78,7 @@
 - 找一找：目标出现时念「字母 + 单词」，按对之后再念一遍（中/英/法有词表）
 - 数字模式：新数字出现时先念一遍，按对之后再念一遍
 - 小钢琴模式里先响琴声、再念字母
+- 拼词模式：出现单词时先念一遍，拼完再念一遍（Français 用法语语音，其他用英语语音）
 
 > Google 语音在 Chrome 里是联网语音，断网时可能没有声音；这是选用 Google 音色的代价。
 
@@ -86,6 +100,7 @@
 
 - 需要实体键盘；手机 / 平板上打不开输入，只能看到界面。
 - 打开即玩，没有开始页，不会自动全屏；右上角 🔊 静音、🌍 朗读语言、🐢 流畅、⛶ 全屏。
+- 拼词模式会显示单词，孩子照着按即可，不需要认识整个单词，只要认字母。
 - 朗读用的是系统语音，音色和「有没有某种语言」取决于电脑 / 电视装了什么语音包；电视浏览器如果没有语音引擎，「🌍」按钮不会出现。
 - 电视上如果显示不正常或动画卡，先点「🐢 流畅」；还不行就换电视自带的另一个浏览器试试。
 - 星星和语言选择都存在浏览器本地（`localStorage`），关掉再打开还在。想清零：控制台执行
@@ -104,6 +119,7 @@ keyboard-kids/
 ├── preview-find.jpg
 ├── preview-speech.jpg
 ├── preview-number.jpg
+├── preview-spell.jpg
 ├── css/
 │   └── style.css      # 布局、糖果配色、动画、流畅模式、朗读菜单
 ├── js/
@@ -125,6 +141,7 @@ keyboard-kids/
 | --- | --- |
 | 字母配的词和 emoji | `js/keymap.js` 的 `LETTER_WORDS` / `DIGIT_WORDS` |
 | 找一找的英文 / 法文单词 | `js/keymap.js` 的 `EN_WORDS` / `FR_WORDS` |
+| 拼词的词库（3–6 字母 + emoji） | `js/keymap.js` 的 `SPELL_WORDS` |
 | 主题配色 | `css/style.css` 的 `:root` + `js/app.js` 的 `COLORS`（两边一起改） |
 | 「找一找」题库 | `js/keymap.js` 的 `FIND_POOL` |
 | 朗读支持哪些语言 | `js/app.js` 的 `SPEECH_LANGS` |
@@ -145,13 +162,14 @@ keyboard-kids/
 - 键盘事件优先读 `e.key`（跟随键盘布局），拿不到时退回 `e.code`（物理键位），并过滤长按产生的 `repeat`。
 - 巨字用 JS 测量后自适应，横屏、竖屏、超宽屏、投影仪都不会溢出；窗口缩放会重新排。
 - 粒子用一个 canvas + 单个 rAF，粒子落完自动停，不空转。
+- 拼词的「插图」全部是 emoji，没有图片文件；词库直接写在前端，离线可用。
 - **老电视兼容**：没有用 `inset` 简写（改用 `top/right/bottom/left`），关键尺寸都带 `clamp()` 降级值，`100dvh` 放在 `@supports` 里，flex 间距用 margin 而不是 `gap`。
 - 支持 `prefers-reduced-motion`，并会自动识别 SmartTV / Tizen / webOS 等 UA。
 
 ## 调试
 
 `index.html?demo=1&key=B`：跳过一切，直接模拟按下 B。
-其他例子：`?demo=1&mode=find`、`?demo=1&mode=piano&key=G`、`?demo=1&mode=number`、`?demo=1&code=Space`、`?lite=1`。
+其他例子：`?demo=1&mode=find`、`?demo=1&mode=piano&key=G`、`?demo=1&mode=number`、`?demo=1&mode=spell`、`?demo=1&code=Space`、`?lite=1`。
 
 ## 浏览器
 

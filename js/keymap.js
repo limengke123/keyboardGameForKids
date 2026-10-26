@@ -99,6 +99,36 @@ KK.keymap = (function () {
     Z: ["zèbre", "🦓"]
   };
 
+  // 拼词模式用的小词库：3–6 个字母、以 emoji 当插图
+  var SPELL_WORDS = {
+    "en-US": [
+      ["cat", "🐱"], ["dog", "🐶"], ["sun", "☀️"], ["moon", "🌙"], ["fish", "🐟"],
+      ["star", "⭐"], ["tree", "🌳"], ["bird", "🐦"], ["frog", "🐸"], ["duck", "🦆"],
+      ["bear", "🐻"], ["lion", "🦁"], ["cake", "🍰"], ["milk", "🥛"], ["book", "📖"],
+      ["hat", "🎩"], ["bus", "🚌"], ["car", "🚗"], ["cow", "🐮"], ["pig", "🐷"],
+      ["egg", "🥚"], ["owl", "🦉"], ["fox", "🦊"], ["key", "🔑"], ["cup", "☕"],
+      ["box", "📦"], ["rain", "🌧️"], ["snow", "❄️"], ["ball", "⚽"], ["kite", "🪁"],
+      ["leaf", "🍃"], ["crab", "🦀"], ["snail", "🐌"], ["mouse", "🐭"], ["horse", "🐴"],
+      ["sheep", "🐑"], ["panda", "🐼"], ["koala", "🐨"], ["tiger", "🐯"], ["zebra", "🦓"],
+      ["whale", "🐳"], ["shark", "🦈"]
+    ],
+    "fr-FR": [
+      ["chat", "🐱"], ["chien", "🐶"], ["lune", "🌙"], ["ours", "🐻"], ["lion", "🦁"],
+      ["bus", "🚌"], ["lait", "🥛"], ["livre", "📖"], ["tasse", "☕"], ["pluie", "🌧️"],
+      ["neige", "❄️"], ["pomme", "🍎"], ["fleur", "🌸"], ["arbre", "🌳"], ["lapin", "🐰"],
+      ["tigre", "🐯"], ["panda", "🐼"], ["koala", "🐨"], ["souris", "🐭"], ["cheval", "🐴"],
+      ["mouton", "🐑"], ["singe", "🐵"], ["vache", "🐮"], ["canard", "🦆"], ["banane", "🍌"],
+      ["citron", "🍋"], ["cerise", "🍒"], ["fourmi", "🐜"], ["hibou", "🦉"], ["renard", "🦊"],
+      ["requin", "🦈"], ["maison", "🏠"], ["jardin", "🌷"], ["sapin", "🎄"], ["nuage", "☁️"],
+      ["soleil", "☀️"]
+    ]
+  };
+
+  function spellBank(lang) {
+    var id = String(lang || "").toLowerCase().indexOf("fr") === 0 ? "fr-FR" : "en-US";
+    return { lang: id, words: SPELL_WORDS[id] };
+  }
+
   var WORDS = {
     "zh-CN": LETTER_WORDS,
     "en-US": EN_WORDS,
@@ -318,6 +348,7 @@ KK.keymap = (function () {
     noteFor: noteFor,
     FIND_POOL: FIND_POOL,
     LETTER_WORDS: LETTER_WORDS,
-    wordFor: wordFor
+    wordFor: wordFor,
+    spellBank: spellBank
   };
 })();
