@@ -1,6 +1,6 @@
 # 咚咚键盘 🎹
 
-给小朋友随便敲键盘玩的静态小游戏。按哪个键，屏幕上就蹦出一个**大大的字**，还会用你选的语言把它念出来，配星星、彩纸和一声好听的「咚」。
+给小朋友随便敲键盘玩的静态小游戏。按哪个键，屏幕上就蹦出一个**大大的字**，还会用你选的语言把它念出来；数字可以输入 0–100 听发音。配星星、彩纸和一声好听的「咚」。
 
 **在线试玩：** <https://limengke123.github.io/keyboardGameForKids/>
 
@@ -13,7 +13,7 @@
 - 浏览器规定必须先有用户操作才能出声，所以第一次按键 / 点击后才有音效和朗读。
 - 也可以整个文件夹丢到任意静态服务器 / GitHub Pages / 内网共享目录。
 
-## 三种玩法
+## 四种玩法
 
 ### 🎲 随便按
 
@@ -31,6 +31,14 @@
 每个键对应五声音阶里的一个音，**物理上相邻的键，音高也相邻**，所以随便乱按都好听。
 每按一下会扩散一圈彩色涟漪。
 
+### 🔢 数字
+
+按数字键输入 `0–100`，停一下就会用当前语言把整个数字念出来。
+`Enter` 或空格再听一遍，`↑ ↓` 加减 1，`Backspace` 删一位，`Delete` / 🧽 清空回到 0。
+超过 100 会提示；已经在 100 时再按数字，会当作重新输入。
+
+![数字模式](preview-number.jpg)
+
 ## 🗣 按字母 / 数字朗读
 
 按字母或数字时，会用浏览器自带的语音把它念出来（不联网、不下载音频文件）。
@@ -39,9 +47,11 @@
 
 - 中文 / English / Français / Español / Deutsch / 日本語 —— 只列出系统里真的装了语音的语言
 - 默认英语；没有英语语音时自动用中文；一个语音都没有时按钮会自动隐藏
+- 会自动跳过系统里的搞怪语音（Albert、Eddy、Zarvox 之类），优先 Samantha / Thomas / 婷婷 这类正常声音
+- 菜单底部的「声音：Samantha ⇄」可以换一个声音，点一下就会用新声音试听，选择按语言记住
 - 菜单既可以用鼠标点，也支持 **方向键 + 回车**（电视遥控器）
 - 选择会记在本地；游戏静音时朗读也一起静音
-- 小钢琴模式里会先响琴声、再念字母
+- 小钢琴模式里会先响琴声、再念字母；数字模式会念整个数字
 
 ![朗读语言](preview-speech.jpg)
 
@@ -77,6 +87,7 @@ keyboard-kids/
 ├── index.html
 ├── preview.jpg
 ├── preview-speech.jpg
+├── preview-number.jpg
 ├── css/
 │   └── style.css      # 布局、糖果配色、动画、流畅模式、朗读菜单
 ├── js/
@@ -101,6 +112,8 @@ keyboard-kids/
 | 「找一找」题库 | `js/keymap.js` 的 `FIND_POOL` |
 | 朗读支持哪些语言 | `js/app.js` 的 `SPEECH_LANGS` |
 | 朗读语速 / 音调 | `js/speech.js` 的 `u.rate` / `u.pitch` |
+| 数字上限（现在是 100） | `js/app.js` 里 `numberAppend` 的 `100` |
+| 语音偏好 / 跳过哪些搞怪语音 | `js/speech.js` 的 `PREFERRED` / `NOVELTY` |
 | 星星奖励多少 | `js/app.js` 里 `addStars(...)` 的调用处 |
 | 音色 | `js/audio.js` 的 `pop()` / `piano()` |
 | 流畅模式减少哪些动画 | `css/style.css` 的 `.lite ...` 段落 + `js/fx.js` 的 `isLite()` |
@@ -111,6 +124,7 @@ keyboard-kids/
 - 单页纯静态，`file://` 直接打开可用：脚本都是普通 `<script>`，没有 ES Module（避免本地打开被 CORS 拦）。
 - 音效全部由 Web Audio 现场合成，工程里没有任何音频文件；音高取自五声音阶，所以乱按也和谐。
 - 朗读用浏览器内置的 Web Speech API（`speechSynthesis`），同样不联网、不引第三方；朗读时会自动压低按键音。
+- 语音会按「语言 + 音色质量」打分：过滤 macOS 的搞怪语音，优先系统里的正常声音，并支持按语言记住手动选择。
 - 键盘事件优先读 `e.key`（跟随键盘布局），拿不到时退回 `e.code`（物理键位），并过滤长按产生的 `repeat`。
 - 巨字用 JS 测量后自适应，横屏、竖屏、超宽屏、投影仪都不会溢出；窗口缩放会重新排。
 - 粒子用一个 canvas + 单个 rAF，粒子落完自动停，不空转。
@@ -120,7 +134,7 @@ keyboard-kids/
 ## 调试
 
 `index.html?demo=1&key=B`：跳过一切，直接模拟按下 B。
-其他例子：`?demo=1&mode=find`、`?demo=1&mode=piano&key=G`、`?demo=1&code=Space`、`?lite=1`。
+其他例子：`?demo=1&mode=find`、`?demo=1&mode=piano&key=G`、`?demo=1&mode=number`、`?demo=1&code=Space`、`?lite=1`。
 
 ## 浏览器
 

@@ -31,9 +31,10 @@
     </div>
 
     <nav class="modes" role="tablist" aria-label="玩法">
-      <button class="mode" type="button" role="tab" data-mode="free" aria-selected="true"><span class="mode-emoji" aria-hidden="true">🎲</span>随便按</button>
-      <button class="mode" type="button" role="tab" data-mode="find" aria-selected="false"><span class="mode-emoji" aria-hidden="true">🔍</span>找一找</button>
-      <button class="mode" type="button" role="tab" data-mode="piano" aria-selected="false"><span class="mode-emoji" aria-hidden="true">🎹</span>小钢琴</button>
+      <button class="mode" type="button" role="tab" data-mode="free" aria-selected="true" aria-label="随便按" title="随便按"><span class="mode-emoji" aria-hidden="true">🎲</span><span class="mode-text">随便按</span></button>
+      <button class="mode" type="button" role="tab" data-mode="find" aria-selected="false" aria-label="找一找" title="找一找"><span class="mode-emoji" aria-hidden="true">🔍</span><span class="mode-text">找一找</span></button>
+      <button class="mode" type="button" role="tab" data-mode="piano" aria-selected="false" aria-label="小钢琴" title="小钢琴"><span class="mode-emoji" aria-hidden="true">🎹</span><span class="mode-text">小钢琴</span></button>
+      <button class="mode" type="button" role="tab" data-mode="number" aria-selected="false" aria-label="数字" title="数字"><span class="mode-emoji" aria-hidden="true">🔢</span><span class="mode-text">数字</span></button>
     </nav>
 
     <div class="tools">
@@ -77,6 +78,17 @@
     <section class="pane pane-piano" data-pane="piano" aria-label="小钢琴">
       <div class="glyph-box"><div class="glyph" id="gPiano" data-fit data-text="🎹">🎹</div></div>
       <p class="caption" id="gPianoCap">按一下，听听看</p>
+    </section>
+
+    <section class="pane pane-number" data-pane="number" aria-label="数字">
+      <div class="glyph-box"><div class="glyph" id="gNumber" data-fit data-text="0">0</div></div>
+      <div class="number-foot">
+        <p class="caption" id="gNumberCap">按数字键 0–9，听听怎么念</p>
+        <div class="number-actions">
+          <button class="number-say" type="button" id="btnSayNumber" title="再听一遍">🔊 再听一遍</button>
+          <button class="number-say" type="button" id="btnClearNumber" title="回到 0">🧽 清空</button>
+        </div>
+      </div>
     </section>
   </main>
 

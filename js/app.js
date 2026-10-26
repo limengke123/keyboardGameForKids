@@ -34,6 +34,14 @@
 
   var audioReady = false;
 
+  var numberState = {
+    raw: "0",
+    timer: 0,
+    hintTimer: 0,
+    lastSpoken: "0",
+    touched: false
+  };
+
   var find = {
     target: null,
     locked: false,
@@ -369,12 +377,161 @@
     pushTrail(k, color);
   }
 
+  /* ---------------- 玩法四：数字 ---------------- */
+
+  function numberValue() {
+    var n = parseInt(numberState.raw, 10);
+    return isFinite(n) ? clamp(n, 0, 100) : 0;
+  }
+
+  function updateNumberCaption() {
+    if (!els.gNumberCap) return;
+    if (!KK.speech.supported || els.speechWrap.classList.contains("is-hidden")) {
+      els.gNumberCap.textContent = "这个设备没有可用的朗读语音";
+      return;
+    }
+    if (KK.audio.isMuted()) {
+      els.gNumberCap.textContent = "🔇 声音已关闭 · 点右上角打开";
+      return;
+    }
+    if (!speechOn()) {
+      els.gNumberCap.textContent = "点右上角 🌍 选择语言，就能听发音";
+      return;
+    }
+    if (!numberState.touched) {
+      els.gNumberCap.textContent = "按数字键 0–9，听听怎么念";
+      return;
+    }
+    var meta = langMeta(state.lang);
+    els.gNumberCap.textContent = (meta ? meta.name + " · " : "") + "↑↓ 加减 · Enter 再听";
+  }
+
+  function numberHint(msg) {
+    if (!els.gNumberCap) return;
+    els.gNumberCap.textContent = msg;
+    clearTimeout(numberState.hintTimer);
+    numberState.hintTimer = setTimeout(updateNumberCaption, 1800);
+  }
+
+  function updateNumber(delay) {
+    clearTimeout(numberState.timer);
+    var val = numberValue();
+    setGlyph(els.gNumber, String(val), nextColor());
+    updateNumberCaption();
+
+    if (delay === 0) speakNumberNow();
+    else if (delay > 0) numberState.timer = setTimeout(speakNumberNow, delay);
+  }
+
+  function speakNumberNow() {
+    clearTimeout(numberState.timer);
+    var val = numberValue();
+
+    if (KK.audio.isMuted()) {
+      numberHint("🔇 声音关着呢");
+      return;
+    }
+    if (!KK.speech.voiceFor(state.lang)) {
+      numberHint("点右上角 🌍 选择语言，就能听发音");
+      return;
+    }
+
+    if (numberState.lastSpoken !== String(val)) {
+      numberState.lastSpoken = String(val);
+      addStars(1);
+      pushTrail({ big: String(val) }, state.lastColor);
+    }
+
+    KK.speech.speak(String(val), state.lang, { delay: 50, rate: 0.82 });
+    updateNumberCaption();
+  }
+
+  function numberAppend(d) {
+    numberState.touched = true;
+
+    // 已经到 100 了，再按数字就当作重新输入
+    if (numberState.raw === "100") {
+      numberState.raw = d;
+      updateNumber(500);
+      return;
+    }
+
+    var raw = numberState.raw === "0" ? d : numberState.raw + d;
+    if (parseInt(raw, 10) > 100) {
+      numberHint("最大到 100 哦，按 🧽 清空重来");
+      return;
+    }
+
+    numberState.raw = raw;
+    updateNumber(500);
+  }
+
+  function numberClear() {
+    numberState.raw = "0";
+    updateNumber(0);
+  }
+
+  function numberBackspace() {
+    numberState.raw = numberState.raw.length > 1 ? numberState.raw.slice(0, -1) : "0";
+    updateNumber(320);
+  }
+
+  function numberStep(delta) {
+    numberState.touched = true;
+    numberState.raw = String(clamp(numberValue() + delta, 0, 100));
+    updateNumber(0);
+  }
+
+  function pressNumber(k) {
+    if (!k) return;
+
+    if (k.key && /^[0-9]$/.test(k.key)) {
+      numberAppend(k.key);
+      return;
+    }
+
+    switch (k.code) {
+      case "Backspace":
+        numberBackspace();
+        break;
+      case "Delete":
+        numberClear();
+        break;
+      case "Enter":
+      case "NumpadEnter":
+      case "Space":
+        speakNumberNow();
+        break;
+      case "ArrowUp":
+        numberStep(1);
+        break;
+      case "ArrowDown":
+        numberStep(-1);
+        break;
+      case "Home":
+        numberState.touched = true;
+        numberState.raw = "0";
+        updateNumber(0);
+        break;
+      case "End":
+        numberState.touched = true;
+        numberState.raw = "100";
+        updateNumber(0);
+        break;
+      default:
+        if (/^Key[A-Z]$/.test(k.code)) numberHint("按数字键 0–9 哦～");
+        break;
+    }
+  }
+
   /* ---------------- 模式切换 ---------------- */
 
   function setMode(mode) {
     state.mode = mode;
     clearFindTimers();
     find.locked = false;
+    clearTimeout(numberState.timer);
+    clearTimeout(numberState.hintTimer);
 
     $$(".pane").forEach(function (p) {
       p.classList.toggle("is-active", p.dataset.pane === mode);
@@ -388,6 +545,8 @@
       startFind();
     } else if (mode === "piano") {
       els.gPianoCap.textContent = "按一下，听听看";
+    } else if (mode === "number") {
+      updateNumber(260);
     } else {
       els.gFreeCap.textContent = "随便按一下键盘吧！";
     }
@@ -597,6 +756,29 @@
       menu.appendChild(item);
     });
 
+    var current = state.lang !== "off" ? KK.speech.voiceFor(state.lang) : null;
+    var candidates = state.lang !== "off" ? KK.speech.voiceCandidates(state.lang) : [];
+
+    if (current && candidates.length > 1) {
+      var voiceRow = document.createElement("button");
+      voiceRow.type = "button";
+      voiceRow.className = "speech-item speech-voice-row";
+      voiceRow.setAttribute("data-voice", "1");
+      voiceRow.setAttribute("aria-label", "换一个声音，当前是 " + current.name);
+
+      var voiceName = document.createElement("span");
+      voiceName.className = "speech-voice-name";
+      voiceName.textContent = "声音：" + current.name;
+
+      var voiceCode = document.createElement("span");
+      voiceCode.className = "speech-code";
+      voiceCode.textContent = "⇄";
+
+      voiceRow.appendChild(voiceName);
+      voiceRow.appendChild(voiceCode);
+      menu.appendChild(voiceRow);
+    }
+
     var hint = document.createElement("p");
     hint.className = "speech-hint";
     hint.textContent = KK.audio.isMuted() ? "🔇 声音已关闭，朗读也会静音" : "按字母、数字时朗读";
@@ -606,12 +788,14 @@
   function renderSpeech() {
     if (!KK.speech.supported) {
       els.speechWrap.classList.add("is-hidden");
+      updateNumberCaption();
       return;
     }
 
     var avail = availableLangs();
     if (!avail.length) {
       els.speechWrap.classList.add("is-hidden");
+      updateNumberCaption();
       return;
     }
     els.speechWrap.classList.remove("is-hidden");
@@ -640,6 +824,37 @@
     els.btnSpeech.setAttribute("aria-label", "朗读语言：" + (meta ? meta.name : "关闭"));
 
     buildSpeechMenu(avail);
+    updateNumberCaption();
+  }
+
+  function cycleVoice() {
+    if (state.lang === "off") return;
+
+    var list = KK.speech.voiceCandidates(state.lang);
+    if (list.length < 2) return;
+
+    var current = KK.speech.voiceFor(state.lang);
+    var index = 0;
+    for (var i = 0; i < list.length; i++) {
+      if (current && list[i].voiceURI === current.voiceURI) index = i;
+    }
+
+    var next = list[(index + 1) % list.length];
+    KK.speech.setVoice(state.lang, next.voiceURI);
+    renderSpeech();
+
+    var row = els.speechMenu.querySelector("[data-voice]");
+    if (row && !els.speechMenu.hidden) row.focus();
+
+    ensureAudio();
+    if (KK.audio.isMuted()) return;
+
+    var sample = state.mode === "number" ? String(numberValue()) : "A";
+    KK.speech.speak(sample, state.lang, {
+      delay: 80,
+      rate: state.mode === "number" ? 0.82 : 0.88
+    });
+    toast("声音：" + next.name);
   }
 
   function toggleSpeechMenu(force) {
@@ -685,8 +900,12 @@
     if (KK.audio.isMuted()) return;
 
     ensureAudio();
+    var sample = state.mode === "number" ? String(numberValue()) : "A";
     setTimeout(function () {
-      KK.speech.speak("A", id, { delay: 100 });
+      KK.speech.speak(sample, id, {
+        delay: 100,
+        rate: state.mode === "number" ? 0.82 : 0.88
+      });
     }, 150);
   }
 
@@ -741,6 +960,7 @@
     if (state.mode === "free") pressFree(k);
     else if (state.mode === "find") pressFind(k);
     else if (state.mode === "piano") pressPiano(k);
+    else if (state.mode === "number") pressNumber(k);
   }
 
   function onKeydown(e) {
@@ -799,6 +1019,14 @@
     });
 
     els.btnSound.addEventListener("click", toggleSound);
+    els.btnSayNumber.addEventListener("click", function () {
+      ensureAudio();
+      speakNumberNow();
+    });
+    els.btnClearNumber.addEventListener("click", function () {
+      ensureAudio();
+      numberClear();
+    });
     els.btnLite.addEventListener("click", toggleLite);
     els.btnFull.addEventListener("click", toggleFullscreen);
 
@@ -810,6 +1038,10 @@
     els.speechMenu.addEventListener("click", function (e) {
       var item = e.target && e.target.closest ? e.target.closest(".speech-item") : null;
       if (!item) return;
+      if (item.hasAttribute("data-voice")) {
+        cycleVoice();
+        return;
+      }
       selectLang(item.getAttribute("data-lang"));
     });
 
@@ -847,6 +1079,10 @@
       gFindCap: $("gFindCap"),
       gPiano: $("gPiano"),
       gPianoCap: $("gPianoCap"),
+      gNumber: $("gNumber"),
+      gNumberCap: $("gNumberCap"),
+      btnSayNumber: $("btnSayNumber"),
+      btnClearNumber: $("btnClearNumber"),
       findTarget: $("findTarget"),
       bubble: $("bubble"),
       trail: $("trail"),
@@ -879,7 +1115,7 @@
 
     if (query.get("demo") === "1") {
       var demoMode = query.get("mode");
-      if (demoMode === "find" || demoMode === "piano") setMode(demoMode);
+      if (demoMode === "find" || demoMode === "piano" || demoMode === "number") setMode(demoMode);
 
       var key = (query.get("key") || "").toUpperCase();
       var code = query.get("code") || "";
