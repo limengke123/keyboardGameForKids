@@ -1,6 +1,6 @@
 /* =========================================================
    咚咚键盘 — 主逻辑
-   三种玩法：随便按 / 找一找 / 小钢琴
+   五种玩法：随便按 / 找一找 / 小钢琴 / 数字 / 拼词
    ========================================================= */
 
 (function () {
@@ -12,6 +12,7 @@
   var STAR_KEY = "dongdong.stars";
   var LITE_KEY = "dongdong.lite";
   var LANG_KEY = "dongdong.lang";
+  var CASE_KEY = "dongdong.case";
   var MAX_TRAIL = 8;
 
   var SPEECH_LANGS = [
@@ -29,7 +30,8 @@
     stars: 0,
     trail: [],
     lang: "off",
-    langChosen: false
+    langChosen: false,
+    letterCase: "lower"
   };
 
   var audioReady = false;
@@ -77,6 +79,47 @@
 
   function $$(sel) {
     return Array.prototype.slice.call(document.querySelectorAll(sel));
+  }
+
+  function splitChars(text) {
+    var s = String(text == null ? "" : text);
+    if (typeof Array.from === "function") {
+      try {
+        return Array.from(s);
+      } catch (e) {}
+    }
+    return s.split("");
+  }
+
+  function caseText(text) {
+    var s = String(text == null ? "" : text);
+    return state.letterCase === "upper" ? s.toUpperCase() : s.toLowerCase();
+  }
+
+  // 把提示拆成一个个字符，方便给「当前该按的那一位」加下划线
+  function renderTipChars(el, text, nextIndex) {
+    if (!el) return;
+
+    var chars = splitChars(text);
+    el.textContent = "";
+
+    for (var i = 0; i < chars.length; i++) {
+      var span = document.createElement("span");
+      span.className = "tip-char";
+      span.textContent = chars[i];
+      if (i === nextIndex) {
+        span.className += " is-next";
+        // 只有小写 g / j / p / q / y 的尾巴会伸到基线下面，下划线要再低一点
+        var ch = chars[i];
+        if (ch === ch.toLowerCase() && /[gjpqy]/.test(stripAccents(ch).toLowerCase())) {
+          span.className += " has-descender";
+        }
+      }
+      el.appendChild(span);
+    }
+
+    if (nextIndex > -1 && nextIndex < chars.length) el.classList.add("has-next");
+    else el.classList.remove("has-next");
   }
 
   function rand(min, max) {
@@ -271,42 +314,53 @@
     setGlyph(els.gFind, "？", "#2b2440", { muted: true });
   }
 
+  function renderFindTarget() {
+    if (!els.findTarget) return;
+    els.findTarget.textContent = find.target == null ? "?" : caseText(find.target);
+  }
+
   function renderFindWord() {
     if (!els.findWord) return;
 
-    var info = find.target ? KK.keymap.wordFor(find.target, state.lang) : null;
+    // 关掉自动朗读时，仍用默认可读语言把单词显示出来，方便点气泡听一遍
+    var lang = state.lang === "off" ? speechLangForTip() : state.lang;
+    var info = find.target ? KK.keymap.wordFor(find.target, lang) : null;
     if (!info) {
       els.findWord.hidden = true;
       els.findWord.textContent = "";
+      if (els.bubble && find.target) {
+        els.bubble.setAttribute("aria-label", "点一下朗读 " + caseText(find.target));
+      }
       return;
     }
 
     els.findWord.hidden = false;
-    els.findWord.textContent = info.word + " " + info.emoji;
+    els.findWord.textContent = caseText(info.word) + " " + info.emoji;
+    if (els.bubble) {
+      els.bubble.setAttribute("aria-label", "点一下朗读 " + caseText(info.word));
+    }
+  }
+
+  function speakFindPhrase(letter, lang, delay) {
+    if (!lang || lang === "off") return false;
+
+    var info = KK.keymap.wordFor(letter, lang);
+    return KK.speech.speak(info ? info.phrase : letter, lang, {
+      delay: delay == null ? 30 : delay,
+      rate: info ? 0.86 : 0.88
+    });
   }
 
   function speakFindTarget(letter) {
     if (!speechOn()) return;
-
-    var info = KK.keymap.wordFor(letter, state.lang);
-    if (info) {
-      KK.speech.speak(info.phrase, state.lang, { delay: 450, rate: 0.86 });
-    } else {
-      KK.speech.speak(letter, state.lang, { delay: 450, rate: 0.88 });
-    }
+    speakFindPhrase(letter, state.lang, 450);
   }
 
   function speakFindKey(k, delay) {
     if (!speechOn()) return;
     if (!k || !k.key || !/^[A-Z0-9]$/.test(k.key)) return;
 
-    var wait = delay == null ? 30 : delay;
-    var info = KK.keymap.wordFor(k.key, state.lang);
-    if (info) {
-      KK.speech.speak(info.phrase, state.lang, { delay: wait, rate: 0.86 });
-    } else {
-      KK.speech.speak(k.key, state.lang, { delay: wait, rate: 0.88 });
-    }
+    speakFindPhrase(k.key, state.lang, delay == null ? 30 : delay);
   }
 
   function armHint() {
@@ -332,7 +386,7 @@
     while (t === find.target && guard++ < 30) t = pick(KK.keymap.FIND_POOL);
     find.target = t;
 
-    els.findTarget.textContent = t;
+    renderFindTarget();
     els.findTarget.style.setProperty("--tc", nextColor());
     els.findTarget.classList.remove("bump");
     void els.findTarget.offsetWidth;
@@ -463,12 +517,48 @@
     numberState.hintTimer = setTimeout(updateNumberCaption, 1800);
   }
 
+  function nextNumberIndex() {
+    if (numberState.target == null) return -1;
+
+    var target = String(numberState.target);
+    var raw = numberState.raw || "";
+    var i = 0;
+
+    while (i < raw.length && i < target.length && raw.charAt(i) === target.charAt(i)) i++;
+    return i < target.length ? i : -1;
+  }
+
+  function renderNumberTarget() {
+    if (!els.numberTarget) return;
+
+    if (numberState.target == null) {
+      els.numberTarget.textContent = "?";
+      return;
+    }
+
+    if (els.numberBubble) {
+      els.numberBubble.setAttribute("aria-label", "点一下朗读数字 " + String(numberState.target));
+    }
+
+    renderTipChars(
+      els.numberTarget,
+      String(numberState.target),
+      numberState.locked ? -1 : nextNumberIndex()
+    );
+  }
+
   function renderNumberInput() {
     if (numberState.raw === "") {
       setGlyph(els.gNumber, "?", "#2b2440", { muted: true });
-      return;
+    } else {
+      setGlyph(els.gNumber, numberState.raw, nextColor());
     }
-    setGlyph(els.gNumber, numberState.raw, nextColor());
+    renderNumberTarget();
+  }
+
+  function speakNumber(value, lang, delay) {
+    if (!lang || lang === "off") return false;
+    return KK.speech.speak(String(value), lang, { delay: delay == null ? 340 : delay, rate: 0.82 });
   }
 
   function startNumberRound() {
@@ -488,7 +578,7 @@
     while (next === numberState.target && guard++ < 40) next = Math.floor(Math.random() * 101);
     numberState.target = next;
 
-    els.numberTarget.textContent = String(next);
+    renderNumberTarget();
     els.numberTarget.style.setProperty("--tc", nextColor());
     els.numberTarget.classList.remove("bump");
     void els.numberTarget.offsetWidth;
@@ -498,7 +588,7 @@
     updateNumberCaption();
 
     if (speechOn()) {
-      KK.speech.speak(String(next), state.lang, { delay: 340, rate: 0.82 });
+      speakNumber(next, state.lang, 340);
     }
   }
 
@@ -509,6 +599,7 @@
     clearTimeout(numberState.clearTimer);
 
     setGlyph(els.gNumber, String(value), "#2fae5b");
+    renderNumberTarget();
     els.gNumberCap.textContent = "找到啦！就是 " + value + " 🎉";
 
     addStars(5);
@@ -525,7 +616,7 @@
     });
 
     if (speechOn()) {
-      KK.speech.speak(String(value), state.lang, { delay: 180, rate: 0.82 });
+      speakNumber(value, state.lang, 180);
     }
 
     numberState.nextTimer = setTimeout(startNumberRound, 1900);
@@ -685,20 +776,49 @@
     }
   }
 
+  function spellDisplayChars() {
+    var word = String(spellState.word || "");
+    try {
+      word = word.normalize("NFC");
+    } catch (e) {}
+    return splitChars(word);
+  }
+
+  function renderSpellWord() {
+    if (!els.spellWord) return;
+
+    if (!spellState.word) {
+      els.spellWord.textContent = "";
+      return;
+    }
+
+    if (els.spellBubble) {
+      els.spellBubble.setAttribute("aria-label", "点一下朗读单词 " + caseText(spellState.word));
+    }
+
+    renderTipChars(
+      els.spellWord,
+      caseText(spellState.word),
+      spellState.locked ? -1 : spellState.typed.length
+    );
+  }
+
   function renderSpellSlots() {
     var slots = els.spellSlots.children;
     var typed = spellState.typed;
-    var display = spellState.word;
+    var chars = spellDisplayChars();
 
     for (var i = 0; i < slots.length; i++) {
       var slot = slots[i];
-      var ch = i < typed.length ? display.charAt(i).toUpperCase() : "";
+      var ch = i < typed.length && i < chars.length ? chars[i].toUpperCase() : "";
       slot.textContent = ch;
       slot.classList.toggle("is-filled", !!ch);
       slot.classList.toggle("is-next", !spellState.locked && i === typed.length);
       if (ch) slot.style.setProperty("--sc", COLORS[i % COLORS.length]);
       else slot.style.removeProperty("--sc");
     }
+
+    renderSpellWord();
   }
 
   function startSpellRound() {
@@ -725,7 +845,7 @@
     spellState.locked = false;
 
     els.spellEmoji.textContent = emoji;
-    els.spellWord.textContent = word;
+    renderSpellWord();
     els.spellLang.textContent = bank.lang === "fr-FR" ? "Français" : "English";
     els.spellBig.hidden = true;
     els.spellBig.classList.remove("pop");
@@ -748,6 +868,7 @@
     clearTimeout(spellState.wrongTimer);
 
     els.spellSlots.classList.remove("is-wrong");
+    renderSpellWord();
     els.spellCap.textContent = "拼对啦！" + spellState.word + " " + spellState.emoji + " 🎉";
     els.spellSlots.hidden = true;
     els.spellBig.textContent = spellState.emoji;
@@ -998,6 +1119,60 @@
     refitAll();
   }
 
+  /* ---------------- 提示大小写 ---------------- */
+
+  function loadCase() {
+    var stored = null;
+    try {
+      stored = localStorage.getItem(CASE_KEY);
+    } catch (e) {}
+    return stored === "upper" ? "upper" : "lower";
+  }
+
+  function saveCase() {
+    try {
+      localStorage.setItem(CASE_KEY, state.letterCase);
+    } catch (e) {}
+  }
+
+  function renderCase() {
+    var upper = state.letterCase === "upper";
+
+    if (els.caseLabel) els.caseLabel.textContent = upper ? "ABC" : "abc";
+    if (!els.btnCase) return;
+
+    els.btnCase.setAttribute("aria-pressed", upper ? "true" : "false");
+    els.btnCase.setAttribute(
+      "aria-label",
+      upper ? "提示文字为大写，点击切换为小写" : "提示文字为小写，点击切换为大写"
+    );
+    els.btnCase.setAttribute(
+      "title",
+      upper ? "提示文字：大写（点击切换小写）" : "提示文字：小写（点击切换大写）"
+    );
+    els.btnCase.classList.toggle("is-upper", upper);
+  }
+
+  function applyCase(mode, announce) {
+    state.letterCase = mode === "upper" ? "upper" : "lower";
+    saveCase();
+    renderCase();
+
+    // 只改气泡里的提示，不动键盘字母格和按键匹配
+    renderFindTarget();
+    renderFindWord();
+    renderSpellWord();
+    renderNumberTarget();
+
+    if (announce) {
+      toast(state.letterCase === "upper" ? "🔠 提示文字：ABC 大写" : "🔡 提示文字：abc 小写");
+    }
+  }
+
+  function toggleCase() {
+    applyCase(state.letterCase === "upper" ? "lower" : "upper", true);
+  }
+
   /* ---------------- 朗读 ---------------- */
 
   function langMeta(id) {
@@ -1046,6 +1221,64 @@
     KK.speech.speak(k.key, state.lang, { delay: delay == null ? 20 : delay });
   }
 
+  // 点击气泡时：即使家长在 🌍 里选了「不朗读」，也按提示自己的语言读一次
+  function speechLangForTip() {
+    if (state.lang !== "off" && KK.speech.voiceFor(state.lang)) return state.lang;
+    var avail = availableLangs();
+    return avail.length ? defaultLang(avail) : "off";
+  }
+
+  function speakSpellTip() {
+    var lang = KK.speech.voiceFor(spellState.lang) ? spellState.lang : speechLangForTip();
+    if (!lang || lang === "off") return false;
+    return KK.speech.speak(spellState.word, lang, { delay: 0, rate: 0.85 });
+  }
+
+  function speakTip(mode) {
+    if (!KK.speech.supported) {
+      toast("这个设备没有可用的朗读语音");
+      return;
+    }
+    if (KK.audio.isMuted()) {
+      toast("🔇 声音关着呢 · 点 🔊 打开");
+      return;
+    }
+
+    ensureAudio();
+
+    var lang = speechLangForTip();
+    var ok = false;
+
+    if (mode === "find" && find.target) {
+      if (lang && lang !== "off") ok = speakFindPhrase(find.target, lang, 0);
+    } else if (mode === "number" && numberState.target != null) {
+      if (lang && lang !== "off") ok = speakNumber(numberState.target, lang, 0);
+    } else if (mode === "spell" && spellState.word) {
+      ok = speakSpellTip();
+    }
+
+    if (!ok) toast("没有可用的语音 · 点右上角 🌍 换一个");
+  }
+
+  function bindTipSpeaker(el, mode) {
+    if (!el) return;
+
+    el.addEventListener("click", function () {
+      ensureAudio();
+      speakTip(mode);
+    });
+
+    el.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter" && e.key !== " " && e.code !== "Space" && e.code !== "NumpadEnter") {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      ensureAudio();
+      speakTip(mode);
+    });
+  }
+
   function buildSpeechMenu(avail) {
     var menu = els.speechMenu;
     menu.innerHTML = "";
@@ -1085,6 +1318,7 @@
 
   function renderSpeech() {
     if (!KK.speech.supported) {
+      document.documentElement.classList.remove("has-speech");
       els.speechWrap.classList.add("is-hidden");
       updateNumberCaption();
       return;
@@ -1092,10 +1326,12 @@
 
     var avail = availableLangs();
     if (!avail.length) {
+      document.documentElement.classList.remove("has-speech");
       els.speechWrap.classList.add("is-hidden");
       updateNumberCaption();
       return;
     }
+    document.documentElement.classList.add("has-speech");
     els.speechWrap.classList.remove("is-hidden");
 
     var ids = avail.map(function (l) {
@@ -1263,6 +1499,20 @@
       toggleSpeechMenu(false);
     }
 
+    // 焦点在按钮上时，把 Enter / 空格留给按钮自己（原生点击）
+    var focused = document.activeElement;
+    if (
+      focused &&
+      focused.tagName === "BUTTON" &&
+      (e.code === "Space" || e.code === "Enter" || e.code === "NumpadEnter")
+    ) {
+      if (e.code === "Enter" || e.code === "NumpadEnter") {
+        e.preventDefault();
+        focused.click();
+      }
+      return;
+    }
+
     if (e.repeat) {
       if (!e.metaKey && !e.ctrlKey) e.preventDefault();
       return;
@@ -1291,12 +1541,17 @@
     });
 
     els.btnSound.addEventListener("click", toggleSound);
+    els.btnCase.addEventListener("click", toggleCase);
     els.btnClearNumber.addEventListener("click", function () {
       ensureAudio();
       numberClear();
     });
     els.btnLite.addEventListener("click", toggleLite);
     els.btnFull.addEventListener("click", toggleFullscreen);
+
+    bindTipSpeaker(els.bubble, "find");
+    bindTipSpeaker(els.numberBubble, "number");
+    bindTipSpeaker(els.spellBubble, "spell");
 
     els.btnSpeech.addEventListener("click", function (e) {
       e.stopPropagation();
@@ -1330,6 +1585,8 @@
     els = {
       btnSound: $("btnSound"),
       btnLite: $("btnLite"),
+      btnCase: $("btnCase"),
+      caseLabel: $("caseLabel"),
       speechWrap: $("speechWrap"),
       btnSpeech: $("btnSpeech"),
       speechMenu: $("speechMenu"),
@@ -1356,6 +1613,8 @@
       findTarget: $("findTarget"),
       findWord: $("findWord"),
       bubble: $("bubble"),
+      numberBubble: $("numberBubble"),
+      spellBubble: $("spellBubble"),
       trail: $("trail"),
       toast: $("toast"),
       flash: $("flash")
@@ -1363,6 +1622,8 @@
 
     loadStars();
     renderStars(false);
+    state.letterCase = loadCase();
+    renderCase();
     renderSound();
     renderTrail();
     bind();

@@ -47,6 +47,10 @@
         </button>
         <div class="speech-menu" id="speechMenu" role="listbox" aria-label="朗读语言" hidden></div>
       </div>
+      <button class="icon-btn icon-btn--case" type="button" id="btnCase" aria-pressed="false"
+              aria-label="提示文字：小写" title="提示文字：小写">
+        <span id="caseLabel">abc</span>
+      </button>
       <button class="icon-btn icon-btn--lite" type="button" id="btnLite" aria-pressed="false"
               title="流畅模式：减少动画，适合电视或旧设备"><span class="lite-label">流畅</span>🐢</button>
       <button class="icon-btn" type="button" id="btnFull" aria-label="全屏">
@@ -65,7 +69,8 @@
     </section>
 
     <section class="pane pane-find" data-pane="find" aria-label="找一找">
-      <div class="bubble" id="bubble">
+      <div class="bubble" id="bubble" role="button" tabindex="0"
+           aria-label="点一下朗读提示" title="点一下朗读提示">
         <span class="bubble-face" aria-hidden="true">🐰</span>
         <span class="bubble-body">
           <span class="bubble-kicker">找一找</span>
@@ -83,7 +88,8 @@
     </section>
 
     <section class="pane pane-number" data-pane="number" aria-label="数字">
-      <div class="bubble number-bubble" id="numberBubble">
+      <div class="bubble number-bubble" id="numberBubble" role="button" tabindex="0"
+           aria-label="点一下朗读这个数字" title="点一下朗读这个数字">
         <span class="bubble-face" aria-hidden="true">🎯</span>
         <span class="bubble-body">
           <span class="bubble-kicker">按出这个数</span>
@@ -100,7 +106,8 @@
     </section>
 
     <section class="pane pane-spell" data-pane="spell" aria-label="拼词">
-      <div class="bubble spell-bubble">
+      <div class="bubble spell-bubble" id="spellBubble" role="button" tabindex="0"
+           aria-label="点一下朗读这个单词" title="点一下朗读这个单词">
         <span class="bubble-face spell-face" id="spellEmoji" aria-hidden="true">?</span>
         <span class="bubble-body">
           <span class="bubble-kicker">拼出这个单词</span>
